@@ -181,7 +181,8 @@ const X=[
 ];
 const ALL=[...P,...X];
 function poolIdx(){const c=S.cat||'spieler';return P.map((_,i)=>i).filter(i=>c==='mix'||(c==='trainer'?P[i].t:!P[i].t))}
-function newOrder(){const o=poolIdx().sort(()=>Math.random()-.5);const z=o.indexOf(0);if(z>0){o.splice(z,1);o.unshift(0)}return o}
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function newOrder(){const r=(typeof S!=='undefined'&&S.recent)||[];const o=shuf(poolIdx());return [...o.filter(i=>!r.includes(i)),...o.filter(i=>r.includes(i))]}
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
 const hue=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h};
 const MODES={
@@ -223,13 +224,14 @@ let wrong=0;
 function findP(name){const q=norm(name);let g=ALL.find(p=>norm(p.n)===q);if(!g&&q){const m=ALL.filter(p=>norm(p.n).split(' ').pop()===q);if(m.length===1)g=m[0]}return g}
 let S={score:0};try{S=Object.assign(S,JSON.parse(localStorage.getItem('st')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('st',JSON.stringify(S))}catch(e){}};
-let order=[0,...P.map((_,i)=>i).slice(1).sort(()=>Math.random()-.5)],ri=0,cur,shown,timer,tick,t0,done;
+let order=newOrder(),ri=0,cur,shown,timer,tick,t0,done;
 
 function pts(){return Math.max(1,Math.max(1,6-shown)*M().x-wrong*M().pen)}
 function start(){
  pushPresence();
  if(M().q&&ri%3===2)return startTrivia();
  $('#opts').innerHTML='';$('#chips').style.display='';$('#qh').textContent='Welcher Spieler wird gesucht?';
+ if(!RM&&!DAILY){if(ri>=order.length)order=order.concat(newOrder());const id=order[ri];S.recent=[id,...(S.recent||[]).filter(x=>x!==id)].slice(0,Math.ceil(P.length*.6));save()}
  const p=P[order[ri%order.length]];cur=p;$('#qh').textContent=p.t?'Welcher Trainer wird gesucht?':'Welcher Spieler wird gesucht?';shown=2;done=false;wrong=0;
  $('#chips').innerHTML='';p.c.slice(0,2).forEach((c,i)=>addChip(c,i+1,false));
  $('#inp').value='';$('#sug').innerHTML='';$('#msg').textContent='';$('#msg').className='msg';
@@ -328,20 +330,72 @@ function renderMC(){
 }
 /* Mehrspieler: gleicher Spielerablauf für alle im Raum, Live-Rangliste über die Raum-Präsenz */
 const URL_=location.href.split('#')[0].split('?')[0];
+const INV=(new URLSearchParams(location.search).get('r')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
 let RM=null,ROOM=null;
 function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
 function pushPresence(){if(ROOM&&RM)ROOM.presence({name:RM.name,score:RM.score,round:ri+1}).catch(()=>{})}
 function code4(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
 function seeded(code){let h=1779033703;for(const ch of code)h=Math.imul(h^ch.charCodeAt(0),3432918353);let a=h|0;const r=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};const o=poolIdx();for(let i=o.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[o[i],o[j]]=[o[j],o[i]]}return o}
 function mpMsg(t){const e=$('#mpm');if(e)e.textContent=t}
-async function joinRoom(raw){
- const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+/* Verbindung zwischen den Handys: Raum-Ersteller ist Gastgeber, alle anderen verbinden sich mit ihm (PeerJS, kostenloser Vermittlungsserver) */
+function loadPeer(){
+ if(window.Peer)return Promise.resolve();
+ const urls=['https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
+ return urls.reduce((p,u)=>p.catch(()=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=()=>window.Peer?ok():no();s.onerror=no;document.head.appendChild(s)})),Promise.reject()).catch(()=>{throw new Error('Mehrspieler konnte nicht geladen werden. Bist du online?')});
+}
+const PK={name:'s',score:'n',round:'n',go:'n',glvl:'s',gcat:'s',gr:'n',gs:'n',done:'n'};
+function cleanP(p){const o={};if(p&&typeof p==='object')for(const k in PK)if(k in p)o[k]=PK[k]==='s'?String(p[k]).slice(0,16):(Number(p[k])||0);return o}
+function mkRoom(code,create){
+ return loadPeer().then(()=>new Promise((ok,no)=>{
+  const hid='stationen-mp-'+code.toLowerCase();
+  const pres={},conns={};let me=null,hc=null,list=[],cbs=[],dead=false,settled=false;
+  const peer=create?new Peer(hid):new Peer();
+  const peers=()=>list.map(x=>({id:x.id,kind:'viewer',presence:x.p,isMe:x.id===me}));
+  const emit=()=>{const ps=peers();cbs.forEach(f=>{try{f({peers:ps})}catch(e){}})};
+  const sync=()=>{list=Object.keys(pres).map(id=>({id,p:pres[id]}));const m={t:'l',l:list};Object.values(conns).forEach(c=>{try{if(c.open)c.send(m)}catch(e){}});emit()};
+  const room={
+   presence(p){p=cleanP(p);if(dead||!me)return Promise.resolve();
+    if(create){pres[me]=Object.assign(pres[me]||{},p);sync()}
+    else{const x=list.find(y=>y.id===me);if(x){x.p=Object.assign({},x.p,p);emit()}try{if(hc&&hc.open)hc.send({t:'p',p})}catch(e){}}
+    return Promise.resolve()},
+   peers,onPeers(f){cbs.push(f)},
+   leave(){dead=true;try{peer.destroy()}catch(e){}}
+  };
+  const done=()=>{if(settled)return;settled=true;clearTimeout(to);ok(room)};
+  const fail=m=>{if(settled)return;settled=true;clearTimeout(to);dead=true;try{peer.destroy()}catch(e){}no(new Error(m))};
+  const to=setTimeout(()=>fail(create?'Verbindung fehlgeschlagen. Versuch es nochmal.':'Raum nicht gefunden. Stimmt der Code?'),15000);
+  peer.on('open',id=>{
+   me=id;
+   if(create){pres[me]={};sync();done();return}
+   hc=peer.connect(hid,{reliable:true});
+   hc.on('open',()=>{list=[{id:me,p:{}}];done()});
+   hc.on('data',d=>{if(d&&d.t==='l'&&Array.isArray(d.l)){list=d.l.map(x=>({id:String(x.id),p:cleanP(x.p)}));emit()}});
+   hc.on('close',()=>{if(dead)return;list=list.filter(x=>x.id===me);emit();mpMsg('Die Verbindung zum Raum wurde getrennt.')});
+  });
+  if(create)peer.on('connection',c=>{
+   c.on('open',()=>{conns[c.peer]=c;pres[c.peer]=pres[c.peer]||{};sync()});
+   c.on('data',d=>{if(d&&d.t==='p'){pres[c.peer]=Object.assign(pres[c.peer]||{},cleanP(d.p));sync()}});
+   const gone=()=>{if(!conns[c.peer])return;delete conns[c.peer];delete pres[c.peer];sync()};
+   c.on('close',gone);c.on('error',gone);
+  });
+  peer.on('disconnected',()=>{if(!dead)try{peer.reconnect()}catch(e){}});
+  peer.on('error',e=>{
+   const t=e&&e.type;
+   if(!settled)return fail(t==='unavailable-id'?'TAKEN':t==='peer-unavailable'?'Raum nicht gefunden. Stimmt der Code?':(t==='browser-incompatible'?'Dein Browser unterstützt den Mehrspieler nicht.':'Verbindung fehlgeschlagen. Versuch es nochmal.'));
+  });
+ }));
+}
+let JOINING=false;
+async function joinRoom(raw,create){
+ if(JOINING||ROOM)return;
+ let code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
  if(code.length<4)return mpMsg('Der Code hat 4 Zeichen.');
  const nick=(($('#nick')&&$('#nick').value.trim())||S.nick||'Spieler').slice(0,16);
  mpMsg('Verbinde …');
- let r=null;
- try{const rm=window.claude&&await window.claude.use('room');r=rm&&await rm.join('stationen-'+code.toLowerCase())}catch(e){}
- if(!r)return mpMsg('Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.');
+ let r=null,err='';JOINING=true;
+ for(let k=0;k<4&&!r;k++){try{r=await mkRoom(code,create)}catch(e){err=e.message;if(create&&err==='TAKEN'){code=code4();continue}break}}
+ JOINING=false;
+ if(!r)return mpMsg(err==='TAKEN'?'Verbindung fehlgeschlagen. Versuch es nochmal.':err);
  ROOM=r;RM={code,name:nick,score:0,started:false,peers:r.peers()};S.nick=nick;save();
  order=seeded(code);ri=0;
  r.onPeers(c=>{RM.peers=c.peers;renderMP();goCheck();renderResult()});
@@ -349,7 +403,7 @@ async function joinRoom(raw){
 }
 function leaveRoom(){try{ROOM&&ROOM.leave()}catch(e){}ROOM=null;RM=null;order=newOrder();ri=0;renderMP();showMenu()}
 async function share(){
- const txt='Spiel mit mir Stationen! Link: '+URL_+' · Raum-Code: '+RM.code;
+ const txt='Spiel mit mir Stationen! Raum-Code: '+RM.code+' · '+URL_+'?r='+RM.code;
  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
  try{await navigator.clipboard.writeText(txt);mpMsg('Einladung kopiert. Füge sie in deinen Chat ein.');return}catch(e){}
  const t=$('#mpt');t.value=txt;t.classList.remove('hide');t.select();mpMsg('Text markieren und kopieren.');
@@ -359,7 +413,8 @@ function renderMP(){
  if(!RM){
   p.innerHTML='<input id="nick" maxlength="16" placeholder="Dein Name"><div class="mprow"><button class="btn y" id="mpc" type="button">Raum erstellen</button></div><div class="mprow"><input id="mpcode" maxlength="4" placeholder="Code" autocapitalize="characters"><button class="btn" id="mpj" type="button">Beitreten</button></div><p class="note" id="mpm">Freunde öffnen den Link und geben deinen Code ein.</p>';
   $('#nick').value=S.nick||'';
-  $('#mpc').onclick=()=>joinRoom(code4());$('#mpj').onclick=()=>joinRoom($('#mpcode').value);
+  if(INV)$('#mpcode').value=INV;
+  $('#mpc').onclick=()=>joinRoom(code4(),true);$('#mpj').onclick=()=>joinRoom($('#mpcode').value,false);
   return;
  }
  p.innerHTML='<div class="mph">Raum <b></b></div><div id="mpl"></div><div class="mprow"><button class="btn y" id="mps" type="button">Einladung teilen</button><button class="btn" id="mpx" type="button">Verlassen</button></div><textarea id="mpt" class="hide" readonly rows="3"></textarea><p class="note" id="mpm">Alle spielen dieselben Spieler in derselben Reihenfolge, auf der Stufe des Spielstarters.</p>';
@@ -394,7 +449,7 @@ MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen V
 document.body.appendChild(MENU);
 const WRAP=document.querySelector('.wrap');
 const BM=document.createElement('button');BM.className='menubtn';BM.type='button';BM.textContent='‹ Spiel verlassen';WRAP.prepend(BM);
-function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent='Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
+function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent=INV&&!RM?'Du wurdest in Raum '+INV+' eingeladen. Tippe auf „Mit Freunden spielen“.':'Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
 function hideMenu(){MENU.style.display='none';window.scrollTo(0,0)}
 BM.onclick=showMenu;
 const RES=document.createElement('div');RES.id='res';RES.style.display='none';document.body.appendChild(RES);
@@ -483,7 +538,6 @@ $('#next').onclick=nextRound;
 showMenu();
 </script>
 <script>
-if(!window.claude){document.documentElement.classList.add('nomp');var f=document.getElementById('mFriends');if(f)f.style.display='none'}
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script>
 </body>
