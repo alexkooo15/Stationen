@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stationen – Wer hat hier gespielt?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--pitch:#0A241B;--grass:#12392A;--line:#21604A;--chalk:#F3F1E7;--mute:#9DB8AA;--yel:#F2D335;--ok:#4CD08A;--bad:#F0647A;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--pitch)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--chalk);font-family:'Barlow',system-ui,sans-serif;background:repeating-linear-gradient(90deg,#0A241B 0 56px,#0C2A1F 56px 112px)}
+.wrap{max-width:480px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+h1{font:700 34px/1 'Barlow Condensed',sans-serif;margin:0}
+.sub{color:var(--mute);font-size:14px;margin:4px 0 0}
+.score{text-align:right;font:700 30px/1 'Barlow Condensed',sans-serif;color:var(--yel)}
+.score small{display:block;font:500 13px 'Barlow',sans-serif;color:var(--mute)}
+.card{background:var(--grass);border:1px solid var(--line);border-radius:18px;padding:22px 18px}
+.top{display:flex;justify-content:space-between;font-size:14px;color:var(--mute);margin-bottom:10px}
+.top b{color:var(--yel)}
+.bar{height:6px;background:#0A241B;border-radius:4px;overflow:hidden;margin-bottom:22px}
+.bar i{display:block;height:100%;width:0;background:var(--yel)}
+.chips{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;height:227px;margin-bottom:6px}
+.chip{display:flex;align-items:center;justify-content:center;gap:10px;width:min(100%,300px);background:#0A241B;border:1px solid var(--line);border-radius:12px;padding:7px 14px;font:600 19px/1.1 'Barlow Condensed',sans-serif;animation:in .45s ease-out}
+.chip .crest{width:22px;height:25px;font-size:10px;padding-bottom:4px}
+.chip .dot{width:14px;height:14px;border-radius:50%;flex:none}
+.chip .n{display:none}
+@keyframes in{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.in{margin-top:14px;position:relative}
+#chk{display:block;width:100%;margin-bottom:10px}
+input{width:100%;font:500 17px 'Barlow',sans-serif;color:var(--chalk);background:#0A241B;border:2px solid var(--line);border-radius:14px;padding:14px}
+input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-offset:2px}
+.sug{display:flex;flex-direction:column;margin-top:6px;border-radius:12px;overflow:hidden}
+.sug button{text-align:left;background:#143F2E;border:0;border-top:1px solid var(--line);color:var(--chalk);font:500 16px 'Barlow',sans-serif;padding:12px 14px;cursor:pointer}
+.msg{min-height:22px;margin:10px 0 0;font-size:15px}
+.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}.msg.hint{color:var(--yel)}
+.shake{animation:sh .35s}
+@keyframes sh{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.row{display:flex;gap:8px;margin-top:22px}
+.btn{flex:1;font:600 16px 'Barlow',sans-serif;border-radius:12px;padding:13px;border:1px solid var(--line);background:transparent;color:var(--chalk);cursor:pointer}
+.btn.y{background:var(--yel);color:#2A2200;border-color:var(--yel)}
+.hide{display:none}
+.modes{display:flex;gap:6px;margin-bottom:6px}.modes button{flex:1;min-width:0;font:600 13px 'Barlow',sans-serif;color:var(--mute);background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 0;cursor:pointer}.modes button.on{background:var(--yel);color:#2A2200;border-color:var(--yel)}#mdesc{margin:0 0 14px;color:var(--mute);font-size:13px;line-height:1.35}.letter{margin-top:12px;font:700 22px 'Barlow Condensed',sans-serif;color:var(--yel);white-space:pre-wrap;letter-spacing:1px}
+.crest{width:30px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;font:700 12px 'Barlow Condensed',sans-serif;color:#fff;background:hsl(var(--h) 60% 38%);clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%);padding-bottom:5px}
+.plh{margin:22px 0 8px;font:700 20px 'Barlow Condensed',sans-serif}
+.qh{font:700 27px/1.25 'Barlow Condensed',sans-serif;margin:4px 0 24px;padding:18px 14px;text-align:center;background:#0A241B;border:2px solid var(--line);border-radius:14px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;counter-reset:o}
+.opts button{text-align:left;background:#0A241B;border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--chalk);font:500 16px 'Barlow',sans-serif;cursor:pointer}
+.opts button.ok{background:#14513A;border-color:var(--ok)}
+.opts button.bad{background:#4C1B2A;border-color:var(--bad)}
+.opts button{min-height:60px;padding:14px 12px;font-size:15px;line-height:1.2;border-radius:14px}
+.opts button::before{counter-increment:o;content:counter(o,upper-alpha) ":";color:var(--yel);font-weight:700;margin-right:8px}
+.opts button:disabled{color:var(--chalk)}
+#menu,#lvl,#res{position:fixed;inset:0;z-index:50;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 50% at 50% 30%,#14503A 0,transparent 70%),repeating-linear-gradient(90deg,#0A241B 0 56px,#0C2A1F 56px 112px)}
+#menu h1{font-size:68px;letter-spacing:1px}
+#menu .tag{color:var(--mute);margin:10px 0 28px;max-width:300px;line-height:1.4}
+.demo{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:140px;width:100%;margin-bottom:28px}
+.demo .chip{opacity:0;animation:in .5s ease-out forwards}
+.demo .chip:nth-child(2){animation-delay:.9s}.demo .chip:nth-child(3){animation-delay:1.8s}
+#menu .btn{display:block;width:min(100%,320px);font-size:18px;padding:16px;margin-bottom:12px;text-align:center}
+.menubtn{position:sticky;top:0;z-index:5;display:block;width:100%;text-align:left;background:var(--pitch);border:0;border-bottom:1px solid var(--line);color:var(--chalk);font:600 16px 'Barlow',sans-serif;padding:12px 0;margin-bottom:12px;cursor:pointer}
+#modes,#mdesc{display:none}
+#lvl h2{font-size:40px;margin:0 0 6px}
+#lvl .lv{display:block;width:min(100%,360px);text-align:left;margin-bottom:10px;padding:14px 16px;flex:none}
+#lvl .lv b{display:block;font:700 22px 'Barlow Condensed',sans-serif}
+#lvl .lv small{display:block;color:var(--mute);font:400 13px/1.3 'Barlow',sans-serif;margin-top:2px}
+#lvl .lv.on{border-color:var(--yel)}
+#lvl>.btn:last-child{width:min(100%,360px);flex:none}
+.cfg{display:flex;gap:10px;margin:10px 0}
+.cfg label{flex:1;font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:4px}
+.cfg select{font:500 16px 'Barlow',sans-serif;color:var(--chalk);background:#0A241B;border:2px solid var(--line);border-radius:10px;padding:9px;width:100%}
+#lvl .cats{display:flex;gap:8px;width:min(100%,360px);margin:0 0 16px}
+#lvl .cats .btn{flex:1;width:auto;margin:0;padding:11px 4px;font-size:16px}
+#res h2{font-size:44px;margin:0 0 6px}
+#res #rl{width:min(100%,360px);margin:18px 0}
+#res .btn{width:min(100%,360px);flex:none}
+#res .mpr{font-size:17px}
+#cd{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(10,36,27,.95);font:700 150px 'Barlow Condensed',sans-serif;color:var(--yel)}
+#cd.pop{animation:pop .8s ease-out}
+@keyframes pop{from{transform:scale(1.6);opacity:.2}to{transform:scale(1);opacity:1}}
+.lobby .card,.lobby #modes,.lobby #mdesc{display:none}
+.solo .mp{display:none}
+.mp{margin:-6px 0 16px}.mp>.btn{width:100%}
+.mpp{margin-top:10px;background:var(--grass);border:1px solid var(--line);border-radius:14px;padding:14px}
+.mpp input,.mpp textarea{width:100%;font:500 16px 'Barlow',sans-serif;color:var(--chalk);background:#0A241B;border:2px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.mprow{display:flex;gap:8px;margin-bottom:10px}.mprow input{margin-bottom:0;flex:1;min-width:0;text-transform:uppercase}
+.mph{font:700 22px 'Barlow Condensed',sans-serif;margin-bottom:10px}
+.mpr{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:#0A241B;margin-bottom:6px;font-size:15px;border:1px solid transparent}
+.mpr.me{border-color:var(--yel)}.mpr b{color:var(--yel);font-weight:600;text-align:right}
+.pl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pl button{display:flex;align-items:center;gap:10px;text-align:left;background:var(--grass);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--chalk);font:500 14px 'Barlow',sans-serif;cursor:pointer}
+.av{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:700 13px 'Barlow Condensed',sans-serif;background:hsl(var(--h) 35% 30%);color:#fff}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .12s ease,background-color .18s,border-color .18s,box-shadow .22s,filter .18s}
+button:active:not(:disabled){transform:scale(.96);filter:brightness(1.3);border-color:var(--yel);box-shadow:0 0 0 3px rgba(242,211,53,.35),0 0 20px rgba(242,211,53,.5)}
+.btn.y:active:not(:disabled){filter:brightness(1.12);box-shadow:0 0 0 3px rgba(242,211,53,.45),0 0 26px rgba(242,211,53,.8)}
+@media (hover:hover){button:hover:not(:disabled){filter:brightness(1.12)}}
+.opts button.ok{box-shadow:0 0 18px rgba(76,208,138,.55)}
+.opts button.bad{box-shadow:0 0 14px rgba(240,100,122,.45)}
+.modes button.on{box-shadow:0 0 14px rgba(242,211,53,.4)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0A241B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stationen">
+<style>html,body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}input{-webkit-user-select:text;user-select:text}.nomp .mp{display:none!important}</style>
+</head>
+<body>
+<div class="wrap">
+<header><div><h1>Stationen</h1><p class="sub">Wer hat bei allen diesen Vereinen gespielt?</p></div><div class="score"><span id="sc">0</span><small>Punkte</small></div></header>
+<div class="modes" id="modes"></div><p id="mdesc"></p>
+<div class="card">
+ <div class="top"><span id="rnd"></span><span>Mögliche Punkte: <b id="pts"></b></span></div>
+ <div class="bar"><i id="bar"></i></div>
+ <h2 class="qh" id="qh">Welcher Spieler wird gesucht?</h2>
+ <div class="chips" id="chips" aria-live="polite"></div>
+ <div class="opts" id="opts"></div>
+ <div class="letter" id="hint"></div>
+ <div class="in" id="inw">
+  <button class="btn y" id="chk" type="button">Prüfen</button>
+  <input id="inp" type="text" autocomplete="off" autocapitalize="words" placeholder="Spielername eingeben" aria-label="Spielername">
+  <div class="sug" id="sug"></div>
+ </div>
+ <p class="msg" id="msg"></p>
+ <div class="row"><button class="btn" id="give">Aufgeben</button><button class="btn y hide" id="next">Nächster Spieler</button></div>
+</div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+/* Beispieldaten: erste zwei Vereine bleiben bewusst mehrdeutig. Vor einer Veröffentlichung prüfen. */
+const P=[
+{n:'Mario Götze',c:['Eintracht Frankfurt','Bayern München','Borussia Dortmund','PSV Eindhoven']},
+{n:'Robert Lewandowski',c:['Bayern München','Borussia Dortmund','FC Barcelona','Lech Posen']},
+{n:'Mesut Özil',c:['Werder Bremen','Arsenal','Real Madrid','Fenerbahçe']},
+{n:'Miroslav Klose',c:['Werder Bremen','Bayern München','Lazio Rom','1. FC Kaiserslautern']},
+{n:'İlkay Gündoğan',c:['Borussia Dortmund','Manchester City','FC Barcelona','1. FC Nürnberg']},
+{n:'Serge Gnabry',c:['Bayern München','Werder Bremen','Arsenal','TSG Hoffenheim','West Bromwich Albion']},
+{n:'Toni Kroos',c:['Bayern München','Real Madrid','Bayer Leverkusen']},
+{n:'Leroy Sané',c:['Schalke 04','Manchester City','Bayern München']},
+{n:'Mario Gomez',c:['Bayern München','VfB Stuttgart','AC Florenz','Beşiktaş','VfL Wolfsburg']},
+{n:'Mats Hummels',c:['Borussia Dortmund','Bayern München','AS Rom']},
+{n:'Kai Havertz',c:['Bayer Leverkusen','Chelsea','Arsenal']},
+{n:'Lionel Messi',c:['FC Barcelona','Paris Saint-Germain','Inter Miami']},
+{n:'Neymar',c:['FC Barcelona','Paris Saint-Germain','Santos','Al-Hilal']},
+{n:'Cristiano Ronaldo',c:['Real Madrid','Manchester United','Juventus','Sporting Lissabon','Al-Nassr']},
+{n:'Zlatan Ibrahimović',c:['Juventus','Inter Mailand','FC Barcelona','AC Mailand','Paris Saint-Germain']},
+{n:'Thierry Henry',c:['Arsenal','FC Barcelona','AS Monaco','Juventus','New York Red Bulls']},
+{n:'Luis Suárez',c:['Liverpool','FC Barcelona','Ajax Amsterdam','Atlético Madrid']},
+{n:'Gareth Bale',c:['Tottenham Hotspur','Real Madrid','FC Southampton','Los Angeles FC']},
+{n:'Zinedine Zidane',c:['Juventus','Real Madrid','Girondins Bordeaux','AS Cannes']},
+{n:'David Beckham',c:['Manchester United','Real Madrid','LA Galaxy','AC Mailand','Paris Saint-Germain']},
+{n:'Kylian Mbappé',c:['Paris Saint-Germain','Real Madrid','AS Monaco']},
+{n:'Erling Haaland',c:['Manchester City','Borussia Dortmund','Red Bull Salzburg','Molde FK']},
+{n:'Pierre-Emerick Aubameyang',c:['Borussia Dortmund','Arsenal','FC Barcelona','Chelsea','AS Saint-Étienne']},
+/* Trainer (t:1): Stationen als Cheftrainer, vor Veröffentlichung prüfen */
+{n:'Jürgen Klopp',t:1,c:['1. FSV Mainz 05','Borussia Dortmund','FC Liverpool']},
+{n:'Thomas Tuchel',t:1,c:['1. FSV Mainz 05','Borussia Dortmund','Paris Saint-Germain','Chelsea','Bayern München']},
+{n:'Pep Guardiola',t:1,c:['FC Barcelona','Bayern München','Manchester City']},
+{n:'Carlo Ancelotti',t:1,c:['AC Mailand','Chelsea','Paris Saint-Germain','Real Madrid','Bayern München']},
+{n:'José Mourinho',t:1,c:['FC Porto','Chelsea','Inter Mailand','Real Madrid','Manchester United']},
+{n:'Julian Nagelsmann',t:1,c:['TSG Hoffenheim','RB Leipzig','Bayern München']},
+{n:'Louis van Gaal',t:1,c:['Ajax Amsterdam','FC Barcelona','AZ Alkmaar','Bayern München','Manchester United']},
+{n:'Arsène Wenger',t:1,c:['AS Monaco','Nagoya Grampus','Arsenal']},
+{n:'Ottmar Hitzfeld',t:1,c:['Grasshopper Zürich','Borussia Dortmund','Bayern München']},
+{n:'Jupp Heynckes',t:1,c:['Borussia Mönchengladbach','Bayern München','Athletic Bilbao','Real Madrid','Bayer Leverkusen']},
+{n:'Ralf Rangnick',t:1,c:['VfB Stuttgart','Hannover 96','Schalke 04','TSG Hoffenheim','RB Leipzig']},
+{n:'Niko Kovač',t:1,c:['Eintracht Frankfurt','Bayern München','AS Monaco','VfL Wolfsburg','Borussia Dortmund']}
+];
+/* Weitere Namen zum Raten (nicht gesucht, aber gültige Eingaben) */
+const X=[
+{n:'Sebastian Rode',c:['Eintracht Frankfurt','Bayern München','Borussia Dortmund']},
+{n:'Marco Reus',c:['Borussia Dortmund','Borussia Mönchengladbach','Rot Weiss Ahlen']},
+{n:'Karim Benzema',c:['Real Madrid','Olympique Lyon','Al-Ittihad']},
+{n:'Jude Bellingham',c:['Real Madrid','Borussia Dortmund','Birmingham City']},
+{n:'Hansi Flick',t:1,c:['Bayern München','FC Barcelona']},
+{n:'Xabi Alonso',t:1,c:['Bayer Leverkusen','Real Madrid']}
+];
+const ALL=[...P,...X];
+function poolIdx(){const c=S.cat||'spieler';return P.map((_,i)=>i).filter(i=>c==='mix'||(c==='trainer'?P[i].t:!P[i].t))}
+function newOrder(){const o=poolIdx().sort(()=>Math.random()-.5);const z=o.indexOf(0);if(z>0){o.splice(z,1);o.unshift(0)}return o}
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
+const hue=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h};
+const MODES={
+einfach:{name:'Ganz leicht',t:8000,x:1,sug:0,fit:0,hint:1,pen:1,mc:1,d:'Vier Antworten zur Auswahl, Buchstabenzahl des Namens und ab dem 4. Verein der Anfangsbuchstabe. Jeder Fehlversuch kostet 1 Punkt.'},
+leicht:{name:'Leicht',t:8000,x:2,sug:1,fit:1,hint:1,pen:0,d:'Vorschläge, Spielerliste, Buchstabenzahl des Namens, Hinweis bei fast richtigen Spielern und ab dem 4. Verein der Anfangsbuchstabe.'},
+mittel:{name:'Mittel',t:8000,x:3,sug:1,fit:1,hint:0,pen:0,d:'Vorschläge beim Tippen, dreifache Punkte, kein Anfangsbuchstabe.'},
+schwer:{name:'Schwer',q:1,t:8000,x:4,sug:0,fit:0,hint:0,pen:0,d:'Keine Vorschläge, du tippst den Namen selbst. Vierfache Punkte, dazu Wissensfragen mit Auswahl.'},
+profi:{name:'Profi',q:1,t:6000,x:5,sug:0,fit:0,hint:0,pen:2,d:'Keine Vorschläge, nur 6 Sekunden pro Verein, fünffache Punkte, jeder Fehlversuch kostet 2 Punkte, dazu Wissensfragen.'}};
+let AC=null;
+function silentUri(){const n=800,b=new Uint8Array(44+n),v=new DataView(b.buffer);const w=(o,t)=>{for(let i=0;i<t.length;i++)b[o+i]=t.charCodeAt(i)};w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);b.fill(128,44);let t='';for(const x of b)t+=String.fromCharCode(x);return 'data:audio/wav;base64,'+btoa(t)}
+/* iPhone: Ton trotz Stummschalter und erst nach Antippen freigegeben */
+function unlockAudio(){
+ try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+ try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();
+  const src=AC.createBufferSource();src.buffer=AC.createBuffer(1,1,22050);src.connect(AC.destination);src.start(0)}catch(e){}
+ try{if(!window._sa){const a=new Audio(silentUri());a.loop=true;a.volume=.01;window._sa=a}if(window._sa.paused)window._sa.play().catch(()=>{})}catch(e){}
+}
+['pointerdown','touchend','click'].forEach(e=>document.addEventListener(e,unlockAudio,{passive:true}));
+function sfx(k){
+ if(S.snd===0)return;
+ try{
+  unlockAudio();
+  const seq={ok:[[660,0,.12],[880,.12,.2]],bad:[[220,0,.18],[165,.16,.26]],tick:[[520,0,.07]],tap:[[880,0,.09],[1175,.09,.13]],next:[[784,0,.08],[988,.08,.08],[1319,.16,.18]],go:[[880,0,.25]],cd:[[440,0,.1]],win:[[523,0,.14],[659,.14,.14],[784,.28,.14],[1047,.42,.3]]}[k]||[];
+  const play=()=>seq.forEach(([f,t,d])=>{const sc=k==='tap'?1.7:k==='next'?1.2:1;t*=sc;d*=sc;const o=AC.createOscillator(),g=AC.createGain();o.type=k==='bad'?'sawtooth':(k==='next'||k==='tap')?'triangle':'sine';o.frequency.value=f;const t0=AC.currentTime+t;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.3,t0+.02*sc);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.02)});
+  if(AC.state==='running')play();else AC.resume().then(play).catch(()=>{});
+ }catch(e){}
+ try{if(navigator.vibrate)navigator.vibrate({ok:[30],bad:[60,40,60],tick:[10],tap:[8],next:[15],go:[40],cd:[10],win:[30,40,30,40,80]}[k]||0)}catch(e){}
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest&&e.target.closest('button');if(!b)return;
+ if(b.id==='next'||b.closest('#menu,#lvl,#res'))sfx('next');
+ else if(b.classList.contains('menubtn')||b.id==='mpb')sfx('tap');
+});
+let DAILY=false;let ROUNDS=10;
+const TT=()=>(RM&&RM.started&&RM.sec)?RM.sec*1000:M().t;
+const rl=()=>'Runde '+(ri+1)+(RM&&RM.started?' von '+ROUNDS:'');
+const M=()=>MODES[DAILY?'mittel':(S.mode||'leicht')];
+let wrong=0;
+function findP(name){const q=norm(name);let g=ALL.find(p=>norm(p.n)===q);if(!g&&q){const m=ALL.filter(p=>norm(p.n).split(' ').pop()===q);if(m.length===1)g=m[0]}return g}
+let S={score:0};try{S=Object.assign(S,JSON.parse(localStorage.getItem('st')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('st',JSON.stringify(S))}catch(e){}};
+let order=[0,...P.map((_,i)=>i).slice(1).sort(()=>Math.random()-.5)],ri=0,cur,shown,timer,tick,t0,done;
+
+function pts(){return Math.max(1,Math.max(1,6-shown)*M().x-wrong*M().pen)}
+function start(){
+ pushPresence();
+ if(M().q&&ri%3===2)return startTrivia();
+ $('#opts').innerHTML='';$('#chips').style.display='';$('#qh').textContent='Welcher Spieler wird gesucht?';
+ const p=P[order[ri%order.length]];cur=p;$('#qh').textContent=p.t?'Welcher Trainer wird gesucht?':'Welcher Spieler wird gesucht?';shown=2;done=false;wrong=0;
+ $('#chips').innerHTML='';p.c.slice(0,2).forEach((c,i)=>addChip(c,i+1,false));
+ $('#inp').value='';$('#sug').innerHTML='';$('#msg').textContent='';$('#msg').className='msg';
+ $('#inw').classList.remove('hide');$('#next').classList.add('hide');$('#give').classList.remove('hide');
+ $('#rnd').textContent=rl();hud();schedule();renderMC();
+}
+function addChip(c,n){
+ const d=document.createElement('div');d.className='chip';
+ d.innerHTML=`<span class="crest" style="--h:${hue(c)}">${ini(c)}</span>${c}<span class="n">Station ${n}</span>`;
+ $('#chips').appendChild(d);
+}
+function schedule(){
+ clearTimeout(timer);cancelAnimationFrame(tick);
+ if(shown>=cur.c.length){$('#bar').style.width='0';return}
+ t0=performance.now();
+ const f=now=>{const r=Math.min(1,(now-t0)/TT());$('#bar').style.width=(r*100)+'%';if(r<1&&!done)tick=requestAnimationFrame(f)};
+ tick=requestAnimationFrame(f);
+ timer=setTimeout(()=>{if(done)return;addChip(cur.c[shown],shown+1);sfx('tick');shown++;hud();schedule()},TT());
+}
+function mask(){const rv=shown>=4;return cur.n.split(' ').map((w,wi)=>[...w].map((ch,i)=>ch==='-'?'-':(rv&&wi===0&&i===0?ch:'_')).join(' ')).join('   ')+'  ('+cur.n.replace(/[ -]/g,'').length+' Buchstaben)'}
+function hud(){$('#pts').textContent=pts();$('#sc').textContent=S.score;$('#hint').textContent=(M().hint&&!done)?mask():''}
+function finish(win){
+ done=true;clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';
+ cur.c.slice(shown).forEach((c,i)=>addChip(c,shown+i+1));
+ const m=$('#msg');
+ if(win){sfx('ok');gain(pts());save();m.textContent='Richtig! '+cur.n+' (+'+pts()+' Punkte)';m.className='msg ok'}
+ else{sfx('bad');m.textContent='Gesucht war: '+cur.n;m.className='msg bad'}
+ hud();$('#opts').querySelectorAll('button').forEach(b=>{b.disabled=true;if(b.textContent===cur.n)b.classList.add('ok')});$('#inw').classList.add('hide');$('#sug').innerHTML='';$('#give').classList.add('hide');$('#next').classList.remove('hide');ri++;updNext();if(DAILY)dailyDone(win);
+}
+function guess(name){
+ if(done)return;
+ const g=findP(name);
+ const m=$('#msg');
+ if(g&&g.n===cur.n)return finish(true);
+ $('#inp').classList.remove('shake');void $('#inp').offsetWidth;$('#inp').classList.add('shake');
+ if(!g){m.textContent='Diesen Spieler kennen wir noch nicht.';m.className='msg bad';return}
+ const fits=cur.c.slice(0,shown).every(c=>g.c.includes(c));wrong++;hud();sfx('bad');
+ m.textContent=!M().fit?'Nicht richtig.':fits?g.n+' hat bei allen bisherigen Vereinen gespielt, ist es aber nicht.':g.n+' passt nicht zu den Vereinen.';
+ m.className='msg '+(fits&&M().fit?'hint':'bad');
+ $('#inp').value='';$('#sug').innerHTML='';
+}
+$('#inp').addEventListener('input',e=>{
+ const q=norm(e.target.value);const s=$('#sug');s.innerHTML='';
+ if(q.length<2||!M().sug)return;
+ ALL.filter(p=>norm(p.n).includes(q)).slice(0,4).forEach(p=>{const b=document.createElement('button');b.textContent=p.n;b.onclick=()=>guess(p.n);s.appendChild(b)});
+});
+$('#inp').addEventListener('keydown',e=>{if(e.key==='Enter')guess(e.target.value)});
+$('#chk').onclick=()=>{const v=$('#inp').value.trim();if(!v){const m=$('#msg');m.textContent='Gib zuerst einen Namen ein.';m.className='msg hint';return}guess(v)};
+$('#give').onclick=()=>finish(false);
+function ini(s){return s.replace(/[^A-Za-z\u00C0-\u017F ]/g,'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+const PL=document.createElement('div');PL.innerHTML='<h2 class="plh">Alle Spieler</h2><div class="pl" id="plg"></div>';document.querySelector('.wrap').appendChild(PL);
+function renderPL(){
+ PL.style.display='none';
+ const g=$('#plg');g.innerHTML='';
+ [...ALL].sort((a,b)=>a.n.localeCompare(b.n,'de')).forEach(p=>{const b=document.createElement('button');b.innerHTML=`<span class="av" style="--h:${hue(p.n)}">${ini(p.n)}</span>${p.n}`;b.onclick=()=>guess(p.n);g.appendChild(b)});
+}
+const TRIVIA=[
+{q:'Wer spielte für den FC Bayern und war bis 2021 Vorstandsvorsitzender des Vereins?',a:'Karl-Heinz Rummenigge',o:['Karl-Heinz Rummenigge','Uli Hoeneß','Franz Beckenbauer','Lothar Matthäus']},
+{q:'Wer spielte für den FC Bayern und war bis 2023 deren Sportvorstand?',a:'Hasan Salihamidžić',o:['Hasan Salihamidžić','Oliver Kahn','Philipp Lahm','Jérôme Boateng']},
+{q:'Wer wurde als Spieler (1974) und als Trainer (1990) Weltmeister?',a:'Franz Beckenbauer',o:['Franz Beckenbauer','Berti Vogts','Jürgen Klinsmann','Joachim Löw']},
+{q:'Welcher Spieler wechselte 2009 von Manchester United zu Real Madrid?',a:'Cristiano Ronaldo',o:['Cristiano Ronaldo','Kaká','David Beckham','Zinedine Zidane']}
+];
+function startTrivia(){
+ const t=TRIVIA[Math.floor(ri/3)%TRIVIA.length];
+ done=false;clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';
+ $('#chips').innerHTML='';$('#chips').style.display='none';$('#hint').textContent='';$('#sug').innerHTML='';$('#msg').textContent='';$('#msg').className='msg';
+ $('#inw').classList.add('hide');$('#give').classList.add('hide');$('#next').classList.add('hide');
+ $('#rnd').textContent=rl()+' · Fragerunde';$('#pts').textContent=3*M().x;
+ $('#qh').textContent=t.q;
+ const o=$('#opts');o.innerHTML='';
+ [...t.o].sort(()=>Math.random()-.5).forEach(x=>{
+  const b=document.createElement('button');b.textContent=x;
+  b.onclick=()=>{
+   if(done)return;done=true;
+   o.querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.textContent===t.a)y.classList.add('ok')});
+   const m=$('#msg');
+   if(x===t.a){sfx('ok');gain(3*M().x);save();m.textContent='Richtig! (+'+3*M().x+' Punkte)';m.className='msg ok'}
+   else{sfx('bad');b.classList.add('bad');m.textContent='Richtig wäre: '+t.a;m.className='msg bad'}
+   $('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
+  };
+  o.appendChild(b);
+ });
+}
+function renderMC(){
+ const o=$('#opts');o.innerHTML='';$('#inw').classList.toggle('hide',!!M().mc);
+ if(!M().mc)return;
+ const rnd=()=>Math.random()-.5;
+ const same=ALL.filter(p=>!p.t===!cur.t);
+ const share=same.filter(p=>p!==cur&&p.c.some(c=>cur.c.includes(c))).sort(rnd);
+ const rest=same.filter(p=>p!==cur&&!share.includes(p)).sort(rnd);
+ [cur,...[...share,...rest].slice(0,3)].sort(rnd).forEach(p=>{
+  const b=document.createElement('button');b.textContent=p.n;
+  b.onclick=()=>{guess(p.n);if(!done){b.disabled=true;b.classList.add('bad')}};
+  o.appendChild(b);
+ });
+}
+/* Mehrspieler: gleicher Spielerablauf für alle im Raum, Live-Rangliste über die Raum-Präsenz */
+const URL_=location.href.split('#')[0].split('?')[0];
+let RM=null,ROOM=null;
+function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
+function pushPresence(){if(ROOM&&RM)ROOM.presence({name:RM.name,score:RM.score,round:ri+1}).catch(()=>{})}
+function code4(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+function seeded(code){let h=1779033703;for(const ch of code)h=Math.imul(h^ch.charCodeAt(0),3432918353);let a=h|0;const r=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};const o=poolIdx();for(let i=o.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[o[i],o[j]]=[o[j],o[i]]}return o}
+function mpMsg(t){const e=$('#mpm');if(e)e.textContent=t}
+async function joinRoom(raw){
+ const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+ if(code.length<4)return mpMsg('Der Code hat 4 Zeichen.');
+ const nick=(($('#nick')&&$('#nick').value.trim())||S.nick||'Spieler').slice(0,16);
+ mpMsg('Verbinde …');
+ let r=null;
+ try{const rm=window.claude&&await window.claude.use('room');r=rm&&await rm.join('stationen-'+code.toLowerCase())}catch(e){}
+ if(!r)return mpMsg('Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.');
+ ROOM=r;RM={code,name:nick,score:0,started:false,peers:r.peers()};S.nick=nick;save();
+ order=seeded(code);ri=0;
+ r.onPeers(c=>{RM.peers=c.peers;renderMP();goCheck();renderResult()});
+ pushPresence();$('#mpp').classList.remove('hide');renderMP();goCheck();if(!RM.started){document.querySelector('.wrap').classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick)}
+}
+function leaveRoom(){try{ROOM&&ROOM.leave()}catch(e){}ROOM=null;RM=null;order=newOrder();ri=0;renderMP();showMenu()}
+async function share(){
+ const txt='Spiel mit mir Stationen! Link: '+URL_+' · Raum-Code: '+RM.code;
+ try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
+ try{await navigator.clipboard.writeText(txt);mpMsg('Einladung kopiert. Füge sie in deinen Chat ein.');return}catch(e){}
+ const t=$('#mpt');t.value=txt;t.classList.remove('hide');t.select();mpMsg('Text markieren und kopieren.');
+}
+function renderMP(){
+ const p=$('#mpp');$('#mpb').textContent=RM&&RM.started?'Rangliste':'Mit Freunden spielen';
+ if(!RM){
+  p.innerHTML='<input id="nick" maxlength="16" placeholder="Dein Name"><div class="mprow"><button class="btn y" id="mpc" type="button">Raum erstellen</button></div><div class="mprow"><input id="mpcode" maxlength="4" placeholder="Code" autocapitalize="characters"><button class="btn" id="mpj" type="button">Beitreten</button></div><p class="note" id="mpm">Freunde öffnen den Link und geben deinen Code ein.</p>';
+  $('#nick').value=S.nick||'';
+  $('#mpc').onclick=()=>joinRoom(code4());$('#mpj').onclick=()=>joinRoom($('#mpcode').value);
+  return;
+ }
+ p.innerHTML='<div class="mph">Raum <b></b></div><div id="mpl"></div><div class="mprow"><button class="btn y" id="mps" type="button">Einladung teilen</button><button class="btn" id="mpx" type="button">Verlassen</button></div><textarea id="mpt" class="hide" readonly rows="3"></textarea><p class="note" id="mpm">Alle spielen dieselben Spieler in derselben Reihenfolge, auf der Stufe des Spielstarters.</p>';
+ p.querySelector('.mph b').textContent=RM.code;
+ if(RM.started)mpMsg('Für alle im Raum: Stufe '+MODES[S.mode||'leicht'].name+', '+ROUNDS+' Runden'+(RM.sec?', '+RM.sec+' Sek. pro Verein':'')+'.');
+ const L=$('#mpl');
+ [...RM.peers].filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined).sort((a,b)=>(b.presence.score|0)-(a.presence.score|0)).forEach(x=>{
+  const d=document.createElement('div');d.className='mpr'+(x.isMe?' me':'');
+  const n=document.createElement('span');n.textContent=String(x.presence.name).slice(0,16)+(x.isMe?' (du)':'');
+  const s=document.createElement('b');s.textContent=(x.presence.score|0)+' Pkt · Runde '+(x.presence.round|0);
+  d.append(n,s);L.appendChild(d);
+ });
+ $('#mps').onclick=share;$('#mpx').onclick=leaveRoom;
+ if(!RM.started){
+  const c=document.createElement('div');c.className='cfg';
+  c.innerHTML='<label>Runden<select id="cfR">'+[5,10,15,20].map(n=>'<option value="'+n+'"'+((RM.rounds||10)===n?' selected':'')+'>'+n+'</option>').join('')+'</select></label><label>Zeit pro Verein<select id="cfS"><option value="0">Standard</option>'+[6,8,10,12].map(n=>'<option value="'+n+'"'+(RM.sec===n?' selected':'')+'>'+n+' Sek.</option>').join('')+'</select></label>';
+  L.after(c);
+  c.querySelector('#cfR').onchange=e=>{RM.rounds=+e.target.value};
+  c.querySelector('#cfS').onchange=e=>{RM.sec=+e.target.value};
+  const g=document.createElement('button');g.type='button';g.className='btn y';g.textContent='Spiel starten';g.style.cssText='display:block;width:100%;margin-bottom:10px';g.onclick=()=>{RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.rounds=RM.rounds||10;RM.sec=RM.sec||0;ROOM.presence({go:1,glvl:RM.lvl,gcat:RM.cat,gr:RM.rounds,gs:RM.sec}).catch(()=>{});beginRoom()};c.after(g)}
+}
+const MP=document.createElement('div');MP.className='mp';
+MP.innerHTML='<button class="btn" id="mpb" type="button">Mit Freunden spielen</button><div class="mpp hide" id="mpp"></div>';
+document.querySelector('header').after(MP);
+$('#mpb').onclick=()=>{$('#mpp').classList.toggle('hide');if(!RM)renderMP()};
+renderMP();
+function goCheck(){if(!RM||RM.started)return;const g=RM.peers.find(x=>x.presence&&x.presence.go===1);if(g){RM.lvl=MODES[g.presence.glvl]?g.presence.glvl:(S.mode||'leicht');RM.cat=['spieler','trainer','mix'].includes(g.presence.gcat)?g.presence.gcat:'spieler';RM.rounds=[5,10,15,20].includes(g.presence.gr)?g.presence.gr:10;RM.sec=[0,6,8,10,12].includes(g.presence.gs)?g.presence.gs:0;beginRoom()}}
+function beginRoom(){if(!RM||RM.started)return;RM.started=true;ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;if(RM.cat)S.cat=RM.cat;save()}order=seeded(RM.code);ri=0;document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
+/* Anfangsmenü: Startbildschirm vor dem Spiel, Wahl zwischen Allein und Freunden */
+const MENU=document.createElement('div');MENU.id='menu';
+MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip"><span class="crest" style="--h:'+hue(c)+'">'+ini(c)+'</span>'+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p>';
+document.body.appendChild(MENU);
+const WRAP=document.querySelector('.wrap');
+const BM=document.createElement('button');BM.className='menubtn';BM.type='button';BM.textContent='‹ Spiel verlassen';WRAP.prepend(BM);
+function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent='Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
+function hideMenu(){MENU.style.display='none';window.scrollTo(0,0)}
+BM.onclick=showMenu;
+const RES=document.createElement('div');RES.id='res';RES.style.display='none';document.body.appendChild(RES);
+const CD=document.createElement('div');CD.id='cd';document.body.appendChild(CD);
+function countdown(cb){
+ let n=3;CD.style.display='flex';
+ const show=t=>{sfx(t==='Los!'?'go':'cd');CD.textContent=t;CD.classList.remove('pop');void CD.offsetWidth;CD.classList.add('pop')};
+ show(n);
+ const t=setInterval(()=>{n--;if(n>0)show(n);else if(n===0)show('Los!');else{clearInterval(t);CD.style.display='none';cb()}},800);
+}
+function updNext(){$('#next').textContent=(RM&&RM.started&&ri>=ROUNDS)?'Ergebnis anzeigen':'Nächster Spieler'}
+function showResult(){
+ sfx('win');if(ROOM)ROOM.presence({done:1}).catch(()=>{});
+ RES.style.display='flex';renderResult();
+}
+function renderResult(){
+ if(RES.style.display==='none'||!RM)return;
+ const med=['🥇','🥈','🥉'];
+ RES.innerHTML='<h2>Ergebnis</h2><p class="tag">'+ROUNDS+' Runden gespielt. Wer noch spielt, wird live aktualisiert.</p><div id="rl"></div>';
+ const L=RES.querySelector('#rl');
+ [...RM.peers].filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined).sort((a,b)=>(b.presence.score|0)-(a.presence.score|0)).forEach((x,i)=>{
+  const d=document.createElement('div');d.className='mpr'+(x.isMe?' me':'');
+  const n=document.createElement('span');n.textContent=(med[i]||(i+1)+'.')+' '+String(x.presence.name).slice(0,16)+(x.isMe?' (du)':'');
+  const b=document.createElement('b');b.textContent=(x.presence.score|0)+' Pkt'+(x.presence.done?'':' · spielt noch');
+  d.append(n,b);L.appendChild(d);
+ });
+ const lv=document.createElement('button');lv.type='button';lv.className='btn y';lv.textContent='Raum verlassen';
+ lv.onclick=()=>{RES.style.display='none';leaveRoom()};RES.appendChild(lv);
+}
+$('#mSnd').onclick=()=>{S.snd=S.snd===0?1:0;save();$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an')};
+/* Tägliche Challenge */
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dailyIdx(){const d=new Date();const pl=P.map((_,i)=>i).filter(i=>!P[i].t);return pl[Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%pl.length]}
+function dailyDone(win){
+ const sq=win?'⬜'.repeat(shown-1)+'🟩':'🟥'.repeat(shown);
+ S.daily={d:today(),win,txt:'Stationen '+today()+'\n'+sq+'\n'+URL_};save();
+ $('#next').textContent='Ergebnis teilen';$('#next').onclick=shareDaily;
+}
+async function shareDaily(){
+ const t=S.daily&&S.daily.txt;if(!t)return;
+ const el=MENU.style.display==='none'?$('#msg'):$('#mInfo');
+ try{if(navigator.share){await navigator.share({text:t});return}}catch(e){}
+ try{await navigator.clipboard.writeText(t);el.textContent='Ergebnis kopiert. Füge es in deinen Chat ein.';return}catch(e){}
+ el.textContent=t;
+}
+$('#mDaily').onclick=()=>{
+ if(S.daily&&S.daily.d===today()){$('#mInfo').textContent='Heute erledigt. Die nächste Challenge gibt es morgen.';shareDaily();return}
+ hideMenu();DAILY=true;order=[dailyIdx()];ri=0;WRAP.classList.remove('lobby');WRAP.classList.add('solo');start();
+};
+const LVL=document.createElement('div');LVL.id='lvl';LVL.style.display='none';document.body.appendChild(LVL);
+let GO='solo';
+function showLevels(go){
+ GO=go;MENU.style.display='none';
+ if(go==='friends'&&RM&&RM.started){if(RM.lvl)S.mode=RM.lvl;if(RM.cat)S.cat=RM.cat;launch();return}
+ LVL.innerHTML='<h2>Schwierigkeit wählen</h2><p class="tag">'+(go==='friends'?'Stufe und Kategorie des Spielstarters gelten für alle im Raum.':'Je höher die Stufe, desto mehr Punkte.')+'</p>';
+ const cats=document.createElement('div');cats.className='cats';
+ [['spieler','Spieler'],['trainer','Trainer'],['mix','Gemischt']].forEach(([k,n])=>{
+  const b=document.createElement('button');b.type='button';b.textContent=n;b.className='btn'+((S.cat||'spieler')===k?' y':'');
+  b.onclick=()=>{S.cat=k;save();cats.querySelectorAll('button').forEach(x=>x.classList.toggle('y',x===b))};
+  cats.appendChild(b);
+ });
+ LVL.appendChild(cats);
+ Object.entries(MODES).forEach(([k,v])=>{
+  const b=document.createElement('button');b.type='button';b.className='btn lv'+((S.mode||'leicht')===k?' on':'');
+  b.innerHTML='<b></b><small></small>';b.firstChild.textContent=v.name+' · '+v.x+'× Punkte';b.lastChild.textContent=v.d;
+  b.onclick=()=>{S.mode=k;save();LVL.style.display='none';launch()};
+  LVL.appendChild(b);
+ });
+ const bk=document.createElement('button');bk.type='button';bk.className='btn';bk.textContent='‹ Zurück';
+ bk.onclick=()=>{LVL.style.display='none';MENU.style.display='flex'};LVL.appendChild(bk);
+ LVL.style.display='flex';LVL.scrollTop=0;
+}
+function launch(){
+ setMode();hideMenu();
+ if(GO==='solo'){order=newOrder();ri=0;WRAP.classList.remove('lobby');WRAP.classList.add('solo');start()}
+ else{WRAP.classList.remove('solo');if(RM&&RM.started){WRAP.classList.remove('lobby');start()}else{WRAP.classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick);$('#mpp').classList.remove('hide');renderMP()}}
+}
+$('#mSolo').onclick=()=>showLevels('solo');
+$('#mFriends').onclick=()=>showLevels('friends');
+const MB=$('#modes');
+Object.entries(MODES).forEach(([k,v])=>{const b=document.createElement('button');b.textContent=v.name;b.dataset.k=k;b.onclick=()=>{S.mode=k;save();setMode()};MB.appendChild(b)});
+function setMode(){MB.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===(S.mode||'leicht')));$('#mdesc').textContent=M().d;$('#sug').innerHTML='';renderPL();if(cur&&!done)start()}
+setMode();
+function nextRound(){if(RM&&RM.started&&ri>=ROUNDS)return showResult();start()}
+$('#next').onclick=nextRound;
+showMenu();
+</script>
+<script>
+if(!window.claude){document.documentElement.classList.add('nomp');var f=document.getElementById('mFriends');if(f)f.style.display='none'}
+if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
