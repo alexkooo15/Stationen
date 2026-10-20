@@ -418,7 +418,17 @@ function sfx(k){
   const play=()=>seq.forEach(([f,t,d])=>{const sc=k==='tap'?1.7:k==='next'?1.2:1;t*=sc;d*=sc;const o=AC.createOscillator(),g=AC.createGain();o.type=k==='bad'?'sawtooth':(k==='next'||k==='tap')?'triangle':'sine';o.frequency.value=f;const t0=AC.currentTime+t;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.3,t0+.02*sc);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.02)});
   if(AC.state==='running')play();else AC.resume().then(play).catch(()=>{});
  }catch(e){}
- try{if(navigator.vibrate)navigator.vibrate({ok:[30],bad:[60,40,60],tick:[10],tap:[8],next:[15],go:[40],cd:[10],win:[30,40,30,40,80]}[k]||0)}catch(e){}
+ try{if(navigator.vibrate)navigator.vibrate({ok:[30],bad:[60,40,60],tick:[10],tap:[8],next:[15],go:[40],cd:[10],win:[30,40,30,40,80]}[k]||0);
+  else{const n={bad:2,win:3}[k]||1;for(let i=0;i<n;i++)setTimeout(haptic,i*120)}}catch(e){}
+}
+/* iPhone kennt kein navigator.vibrate: ein unsichtbarer iOS-Schalter erzeugt beim Antippen ein kurzes Haptik-Feedback */
+let HAP=null;
+function haptic(){
+ try{
+  if(!HAP){const l=document.createElement('label');l.setAttribute('aria-hidden','true');l.style.cssText='position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden';
+   const i=document.createElement('input');i.type='checkbox';i.setAttribute('switch','');i.tabIndex=-1;l.appendChild(i);document.body.appendChild(l);HAP=l}
+  HAP.click();
+ }catch(e){}
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest&&e.target.closest('button');if(!b)return;
@@ -539,10 +549,10 @@ function renderMC(){
 }
 /* Mehrspieler: gleicher Spielerablauf für alle im Raum, Live-Rangliste über die Raum-Präsenz */
 const URL_=location.href.split('#')[0].split('?')[0];
-const INV=(new URLSearchParams(location.search).get('r')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+let INV=(new URLSearchParams(location.search).get('r')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
 let RM=null,ROOM=null;
 function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
-function pushPresence(){if(ROOM&&RM)ROOM.presence({name:RM.name,score:RM.score,round:ri+1}).catch(()=>{})}
+function pushPresence(){if(ROOM&&RM)ROOM.presence(Object.assign({name:RM.name,score:RM.score,round:ri+1},RM.host?{glvl:S.mode||'leicht',gcat:S.cat||'spieler'}:{})).catch(()=>{})}
 function code4(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
 function seeded(code){let h=1779033703;for(const ch of code)h=Math.imul(h^ch.charCodeAt(0),3432918353);let a=h|0;const r=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};const o=poolIdx();for(let i=o.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[o[i],o[j]]=[o[j],o[i]]}return o}
 function mpMsg(t){const e=$('#mpm');if(e)e.textContent=t}
@@ -605,10 +615,10 @@ async function joinRoom(raw,create){
  for(let k=0;k<4&&!r;k++){try{r=await mkRoom(code,create)}catch(e){err=e.message;if(create&&err==='TAKEN'){code=code4();continue}break}}
  JOINING=false;
  if(!r)return mpMsg(err==='TAKEN'?'Verbindung fehlgeschlagen. Versuch es nochmal.':err);
- ROOM=r;RM={code,name:nick,score:0,started:false,peers:r.peers()};S.nick=nick;save();
+ ROOM=r;RM={code,name:nick,score:0,started:false,host:!!create,peers:r.peers()};INV='';try{history.replaceState(null,'',URL_)}catch(e){}S.nick=nick;save();
  order=seeded(code);ri=0;
  r.onPeers(c=>{RM.peers=c.peers;renderMP();goCheck();renderResult()});
- pushPresence();$('#mpp').classList.remove('hide');renderMP();goCheck();if(!RM.started){document.querySelector('.wrap').classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick)}
+ pushPresence();GO='friends';MENU.style.display='none';LVL.style.display='none';WRAP.classList.remove('solo');$('#mpp').classList.remove('hide');renderMP();goCheck();if(!RM.started){document.querySelector('.wrap').classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick)}
 }
 function leaveRoom(){try{ROOM&&ROOM.leave()}catch(e){}ROOM=null;RM=null;order=newOrder();ri=0;renderMP();showMenu()}
 async function share(){
@@ -620,9 +630,15 @@ async function share(){
 function renderMP(){
  const p=$('#mpp');$('#mpb').textContent=RM&&RM.started?'Rangliste':'Mit Freunden spielen';
  if(!RM){
+  if(INV){
+   p.innerHTML='<div class="mph">Einladung in Raum <b></b></div><p class="note">Gib deinen Namen ein und tritt bei. Stufe und Runden legt der Gastgeber fest.</p><input id="nick" maxlength="16" placeholder="Dein Name"><button class="btn y" id="mpj" type="button" style="display:block;width:100%;margin-bottom:10px">Beitreten</button><button class="btn" id="mpo" type="button" style="display:block;width:100%">Stattdessen allein spielen</button><p class="note" id="mpm"></p>';
+   p.querySelector('.mph b').textContent=INV;$('#nick').value=S.nick||'';
+   $('#mpj').onclick=()=>joinRoom(INV,false);
+   $('#mpo').onclick=()=>{INV='';try{history.replaceState(null,'',URL_)}catch(e){}$('#mpp').classList.add('hide');renderMP();showMenu()};
+   return;
+  }
   p.innerHTML='<input id="nick" maxlength="16" placeholder="Dein Name"><div class="mprow"><button class="btn y" id="mpc" type="button">Raum erstellen</button></div><div class="mprow"><input id="mpcode" maxlength="4" placeholder="Code" autocapitalize="characters"><button class="btn" id="mpj" type="button">Beitreten</button></div><p class="note" id="mpm">Freunde öffnen den Link und geben deinen Code ein.</p>';
   $('#nick').value=S.nick||'';
-  if(INV)$('#mpcode').value=INV;
   $('#mpc').onclick=()=>joinRoom(code4(),true);$('#mpj').onclick=()=>joinRoom($('#mpcode').value,false);
   return;
  }
@@ -637,7 +653,12 @@ function renderMP(){
   d.append(n,s);L.appendChild(d);
  });
  $('#mps').onclick=share;$('#mpx').onclick=leaveRoom;
- if(!RM.started){
+ if(!RM.started&&!RM.host){
+  const h=RM.peers.find(x=>!x.isMe&&x.presence&&x.presence.glvl);
+  mpMsg('Du bist drin! Warte, bis der Gastgeber das Spiel startet …'+(h&&MODES[h.presence.glvl]?' (Stufe: '+MODES[h.presence.glvl].name+')':''));
+ }
+ if(!RM.started&&RM.host){
+  mpMsg('Stufe: '+MODES[S.mode||'leicht'].name+'. Teile die Einladung und starte, sobald alle in der Liste stehen.');
   const c=document.createElement('div');c.className='cfg';
   c.innerHTML='<label>Runden<select id="cfR">'+[5,10,15,20].map(n=>'<option value="'+n+'"'+((RM.rounds||10)===n?' selected':'')+'>'+n+'</option>').join('')+'</select></label><label>Zeit pro Verein<select id="cfS"><option value="0">Standard</option>'+[6,8,10,12].map(n=>'<option value="'+n+'"'+(RM.sec===n?' selected':'')+'>'+n+' Sek.</option>').join('')+'</select></label>';
   L.after(c);
@@ -658,7 +679,7 @@ MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen V
 document.body.appendChild(MENU);
 const WRAP=document.querySelector('.wrap');
 const BM=document.createElement('button');BM.className='menubtn';BM.type='button';BM.textContent='‹ Spiel verlassen';WRAP.prepend(BM);
-function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent=INV&&!RM?'Du wurdest in Raum '+INV+' eingeladen. Tippe auf „Mit Freunden spielen“.':'Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
+function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent='Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
 function hideMenu(){MENU.style.display='none';window.scrollTo(0,0)}
 BM.onclick=showMenu;
 const RES=document.createElement('div');RES.id='res';RES.style.display='none';document.body.appendChild(RES);
@@ -744,7 +765,7 @@ function setMode(){MB.querySelectorAll('button').forEach(b=>b.classList.toggle('
 setMode();
 function nextRound(){if(RM&&RM.started&&ri>=ROUNDS)return showResult();start()}
 $('#next').onclick=nextRound;
-showMenu();
+if(INV){GO='friends';showMenu();hideMenu();WRAP.classList.remove('solo');WRAP.classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick);$('#mpp').classList.remove('hide');renderMP()}else showMenu();
 </script>
 <script>
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
