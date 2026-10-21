@@ -88,7 +88,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-of
 #stat .btn{width:min(100%,360px);flex:none;margin-top:8px}
 #lvl .lgs{display:flex;gap:8px;width:min(100%,360px);margin:-6px 0 16px}#lvl .lgs .btn{flex:1;margin:0;padding:9px 2px;font-size:14px}
 .ph{display:none;margin:0 0 6px;text-align:center}.ph .fr{position:relative;height:236px;border-radius:14px;overflow:hidden;background:#0A241B;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:15px}
-.ph img{width:100%;height:100%;object-fit:cover;display:block;animation:in .45s ease-out}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;animation:in .45s ease-out;transition:transform 1.1s cubic-bezier(.3,.7,.3,1)}
 .ph .cr{font-size:11px;line-height:1.35;color:var(--mute);margin-top:6px;min-height:15px;word-break:break-word}.ph .cr a{color:var(--mute)}
 #res .rv{margin-bottom:10px}#res .wt{color:var(--mute);margin:0 0 12px;font-size:15px}
 #res #rl{width:min(100%,360px);margin:18px 0}
@@ -271,8 +271,8 @@ const MODES={
 einfach:{name:'Ganz leicht',t:8000,x:1,sug:0,fit:0,hint:1,pen:1,mc:1,yr:1,d:'Jahreszahlen zu jedem Verein, vier Antworten zur Auswahl, Buchstabenzahl des Namens und ab dem 4. Verein der Anfangsbuchstabe. Jeder Fehlversuch kostet 1 Punkt.'},
 leicht:{name:'Leicht',t:8000,x:2,sug:1,fit:1,hint:1,pen:0,yr:1,d:'Jahreszahlen zu jedem Verein, Vorschläge, Buchstabenzahl des Namens, Hinweis bei fast richtigen Spielern und ab dem 4. Verein der Anfangsbuchstabe.'},
 mittel:{name:'Mittel',t:8000,x:3,sug:1,fit:1,hint:0,pen:0,yr:1,d:'Jahreszahlen zu jedem Verein, Vorschläge beim Tippen, dreifache Punkte, kein Anfangsbuchstabe.'},
-schwer:{name:'Schwer',q:1,t:8000,x:4,sug:0,fit:0,hint:0,pen:0,d:'Keine Vorschläge, du tippst den Namen selbst. Vierfache Punkte, dazu Wissensfragen mit Auswahl.'},
-profi:{name:'Profi',q:1,t:6000,x:5,sug:0,fit:0,hint:0,pen:2,d:'Keine Vorschläge, nur 6 Sekunden pro Verein, fünffache Punkte, jeder Fehlversuch kostet 2 Punkte, dazu Wissensfragen.'}};
+schwer:{name:'Schwer',q:1,t:8000,x:4,sug:0,fit:0,hint:0,pen:0,d:'Keine Vorschläge, du tippst den Namen selbst. Vierfache Punkte, dazu Wissensfragen mit Auswahl. Fotos starten herangezoomt.'},
+profi:{name:'Profi',q:1,t:6000,x:5,sug:0,fit:0,hint:0,pen:2,d:'Keine Vorschläge, nur 6 Sekunden pro Verein, fünffache Punkte, jeder Fehlversuch kostet 2 Punkte, dazu Wissensfragen. Fotos starten ganz nah herangezoomt.'}};
 let AC=null;
 function silentUri(){const n=800,b=new Uint8Array(44+n),v=new DataView(b.buffer);const w=(o,t)=>{for(let i=0;i<t.length;i++)b[o+i]=t.charCodeAt(i)};w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);b.fill(128,44);let t='';for(const x of b)t+=String.fromCharCode(x);return 'data:audio/wav;base64,'+btoa(t)}
 /* iPhone: Ton trotz Stummschalter und erst nach Antippen freigegeben */
@@ -309,7 +309,7 @@ const save=()=>{try{localStorage.setItem('st',JSON.stringify(S))}catch(e){}};
 let order=[0,...P.map((_,i)=>i).slice(1).sort(()=>Math.random()-.5)],ri=0,cur,shown,timer,tick,t0,done;
 
 function pts(){return Math.max(1,Math.max(1,6-shown)*M().x-wrong*M().pen)}
-function kind(i){if(M().q&&i%3===2)return 'trivia';if(DAILY)return 'person';if(S.cat==='fotos')return 'photo';if(S.cat==='mix'&&i%4===3)return 'photo';return 'person'}
+function kind(i){if(M().q&&i%3===2&&!(S.cat==='fotos'&&!DAILY))return 'trivia';if(DAILY)return 'person';if(S.cat==='fotos')return 'photo';if(S.cat==='mix'&&i%4===3)return 'photo';return 'person'}
 function start(){
  pushPresence();photoTok++;$('#ph').style.display='none';$('.sub').textContent='Wer hat bei allen diesen Vereinen gespielt?';
  const k=kind(ri);if(k==='trivia')return startTrivia();if(k==='photo')return startPhoto();
@@ -425,7 +425,7 @@ async function startPhoto(){
  const my=photoTok;done=false;clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';
  $('#chips').innerHTML='';$('#chips').style.display='none';$('#hint').textContent='';$('#sug').innerHTML='';$('#msg').textContent='';$('#msg').className='msg';
  $('#inw').classList.add('hide');$('#give').classList.add('hide');$('#next').classList.add('hide');$('#opts').innerHTML='';
- $('#rnd').textContent=rl()+' · Fotorunde';$('#pts').textContent=3*M().x;
+ $('#rnd').textContent=rl()+' · Fotorunde';$('#pts').textContent=M().q?(S.mode==='profi'?5:4)*M().x:3*M().x;
  if(!PHO.length)PHO=shuf(phPool());
  $('#ph').style.display='block';$('#phf').textContent='Foto wird geladen …';$('#phc').textContent='';$('#qh').textContent='Was ist auf dem Foto?';
  let x=null,ph=null;const base=ri*3;
@@ -434,6 +434,17 @@ async function startPhoto(){
  $('#qh').textContent=x.s?'Welches Stadion ist das?':x.t?'Welcher Trainer ist das?':'Welcher Spieler ist das?';
  $('.sub').textContent='Erkennst du, was auf dem Foto ist?';
  const im=document.createElement('img');im.src=ph.src;if(!x.s)im.style.objectPosition='center 22%';im.alt='Foto zum Erraten';$('#phf').innerHTML='';$('#phf').appendChild(im);
+ const zr=rng('z|'+ri+'|'+x.n+'|'+(RM?RM.code+RM.game:Math.random()));
+ const Z=M().q?(S.mode==='profi'?[4.6,3.3,2.2,1.4,1]:[3.6,2.6,1.8,1]):[1];let zi=0;
+ const ox=20+zr()*60,oy=(x.s?20:12)+zr()*(x.s?60:72);
+ im.style.transformOrigin=ox+'% '+oy+'%';im.style.transition='none';im.style.transform='scale('+Z[0]+')';void im.offsetWidth;im.style.transition='';
+ const zpts=()=>Math.max(1,(Z.length-zi))*M().x+(Z.length>1?0:2*M().x);
+ $('#pts').textContent=zpts();
+ const zoomStep=()=>{clearTimeout(timer);cancelAnimationFrame(tick);if(done||zi>=Z.length-1){$('#bar').style.width='0';return}
+  t0=performance.now();const f=now=>{const q=Math.min(1,(now-t0)/TT());$('#bar').style.width=(q*100)+'%';if(q<1&&!done)tick=requestAnimationFrame(f)};tick=requestAnimationFrame(f);
+  timer=setTimeout(()=>{if(done)return;zi++;im.style.transform='scale('+Z[zi]+')';sfx('tick');$('#pts').textContent=zpts();zoomStep()},TT())};
+ zoomStep();
+ const zoomOut=()=>{clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';im.style.transform='scale(1)'};
  const c=$('#phc');c.textContent='Foto: '+ph.artist+' · ';const l1=document.createElement('a');l1.href=ph.licUrl||ph.page;l1.target='_blank';l1.rel='noopener';l1.textContent=ph.lic;const l2=document.createElement('a');l2.href=ph.page;l2.target='_blank';l2.rel='noopener';l2.textContent='Wikimedia Commons';c.append(l1,' · via ',l2);
  const same=PH.filter(y=>y!==x&&y.n!==x.n&&(x.s?y.s:!y.s&&!y.t===!x.t));
  {const sl=same.filter(y=>lgOK(y));if(sl.length>=3)same.splice(0,same.length,...sl)}
@@ -441,9 +452,9 @@ async function startPhoto(){
  const opts=shuf([x,...shuf(same.slice(),r).slice(0,3)],r);
  const o=$('#opts');
  opts.forEach(y=>{const b=document.createElement('button');b.textContent=y.n;b.onclick=()=>{
-  if(done)return;done=true;o.querySelectorAll('button').forEach(z=>{z.disabled=true;if(z.textContent===x.n)z.classList.add('ok')});
+  if(done)return;const gp=zpts();done=true;zoomOut();o.querySelectorAll('button').forEach(z=>{z.disabled=true;if(z.textContent===x.n)z.classList.add('ok')});
   const m=$('#msg');stat(y===x);
-  if(y===x){sfx('ok');gain(3*M().x);save();m.textContent='Richtig! (+'+3*M().x+' Punkte)';m.className='msg ok'}
+  if(y===x){sfx('ok');gain(gp);save();m.textContent='Richtig! (+'+gp+' Punkte)';m.className='msg ok'}
   else{sfx('bad');b.classList.add('bad');m.textContent='Richtig wäre: '+x.n;m.className='msg bad'}
   $('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
   const nx=PHO[(ri*3)%PHO.length];if(nx)getPhoto(nx);
