@@ -384,7 +384,33 @@ function renderMC(){
  });
 }
 /* Mehrspieler: gleicher Spielerablauf für alle im Raum, Live-Rangliste über die Raum-Präsenz */
-const URL_='https://claude.ai/artifact/QGnPAgZFufMfNDAuwMadce';
+/* Firebase für die GitHub-Version: hier die Datenbank-URL aus der Firebase-Konsole eintragen */
+const FIREBASE_DB_URL='https://stationen-25e6a-default-rtdb.europe-west1.firebasedatabase.app';
+const CLAUDE_URL='https://claude.ai/artifact/QGnPAgZFufMfNDAuwMadce';
+const inClaude=()=>!!(window.claude&&window.claude.use);
+const URL_=()=>inClaude()?CLAUDE_URL:location.origin+location.pathname;
+function loadJS(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
+let FBDB=null;
+async function fbDb(){
+ if(FBDB)return FBDB;if(!FIREBASE_DB_URL)return null;
+ const v='10.12.2';
+ if(!window.firebase)await loadJS('https://www.gstatic.com/firebasejs/'+v+'/firebase-app-compat.js');
+ if(!firebase.database)await loadJS('https://www.gstatic.com/firebasejs/'+v+'/firebase-database-compat.js');
+ const app=firebase.apps.length?firebase.app():firebase.initializeApp({databaseURL:FIREBASE_DB_URL});
+ FBDB=app.database();return FBDB;
+}
+/* Gleiche Raum-Schnittstelle wie in Claude: peers(), onPeers(cb), presence(obj), leave() */
+async function fbJoin(id){
+ const db=await fbDb();if(!db)return null;
+ const ref=db.ref('rooms/'+id+'/peers');const me=ref.push();
+ me.onDisconnect().remove();await me.set({t:Date.now()});
+ let list=[],cbs=[];
+ const snap=await ref.once('value');
+ const build=v=>Object.entries(v||{}).map(([k,x])=>({kind:'viewer',isMe:k===me.key,presence:x}));
+ list=build(snap.val());
+ ref.on('value',sn=>{list=build(sn.val());cbs.forEach(f=>f({peers:list}))});
+ return{peers:()=>list,onPeers:f=>{cbs.push(f)},presence:o=>me.update(o),leave:()=>{ref.off();me.remove()}};
+}
 let RM=null,ROOM=null;
 function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
 function pushPresence(){if(ROOM&&RM)ROOM.presence({name:RM.name,score:RM.score,round:ri+1}).catch(()=>{})}
@@ -397,8 +423,8 @@ async function joinRoom(raw){
  const nick=(($('#nick')&&$('#nick').value.trim())||S.nick||'Spieler').slice(0,16);
  mpMsg('Verbinde …');
  let r=null;
- try{const rm=window.claude&&await window.claude.use('room');r=rm&&await rm.join('stationen-'+code.toLowerCase())}catch(e){}
- if(!r)return mpMsg('Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.');
+ try{if(inClaude()){const rm=await window.claude.use('room');r=rm&&await rm.join('stationen-'+code.toLowerCase())}else r=await fbJoin('stationen-'+code.toLowerCase())}catch(e){}
+ if(!r)return mpMsg(inClaude()?'Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.':FIREBASE_DB_URL?'Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es noch mal.':'Mehrspieler ist noch nicht eingerichtet (Firebase fehlt).');
  ROOM=r;RM={code,name:nick,score:0,started:false,peers:r.peers()};S.nick=nick;save();
  order=seeded(code);ri=0;
  r.onPeers(c=>{RM.peers=c.peers;renderMP();goCheck();renderResult()});
@@ -406,7 +432,7 @@ async function joinRoom(raw){
 }
 function leaveRoom(){try{ROOM&&ROOM.leave()}catch(e){}ROOM=null;RM=null;order=newOrder();ri=0;renderMP();showMenu()}
 async function share(){
- const txt='Spiel mit mir Stationen! Link: '+URL_+' · Raum-Code: '+RM.code;
+ const txt='Spiel mit mir Stationen! '+(inClaude()?URL_()+' · Raum-Code: '+RM.code:URL_()+'?raum='+RM.code);
  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
  try{await navigator.clipboard.writeText(txt);mpMsg('Einladung kopiert. Füge sie in deinen Chat ein.');return}catch(e){}
  const t=$('#mpt');t.value=txt;t.classList.remove('hide');t.select();mpMsg('Text markieren und kopieren.');
@@ -415,7 +441,7 @@ function renderMP(){
  const p=$('#mpp');$('#mpb').textContent=RM&&RM.started?'Rangliste':'Mit Freunden spielen';
  if(!RM){
   p.innerHTML='<input id="nick" maxlength="16" placeholder="Dein Name"><div class="mprow"><button class="btn y" id="mpc" type="button">Raum erstellen</button></div><div class="mprow"><input id="mpcode" maxlength="4" placeholder="Code" autocapitalize="characters"><button class="btn" id="mpj" type="button">Beitreten</button></div><p class="note" id="mpm">Freunde öffnen den Link und geben deinen Code ein.</p>';
-  $('#nick').value=S.nick||'';
+  $('#nick').value=S.nick||'';if(INV)$('#mpcode').value=INV;
   $('#mpc').onclick=()=>joinRoom(code4());$('#mpj').onclick=()=>joinRoom($('#mpcode').value);
   return;
  }
@@ -487,7 +513,7 @@ function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth
 function dailyIdx(){const d=new Date();const pl=P.map((_,i)=>i).filter(i=>!P[i].t);return pl[Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%pl.length]}
 function dailyDone(win){
  const sq=win?'⬜'.repeat(shown-1)+'🟩':'🟥'.repeat(shown);
- S.daily={d:today(),win,txt:'Stationen '+today()+'\n'+sq+'\n'+URL_};save();
+ S.daily={d:today(),win,txt:'Stationen '+today()+'\n'+sq+'\n'+URL_()};save();
  $('#next').textContent='Ergebnis teilen';$('#next').onclick=shareDaily;
 }
 async function shareDaily(){
@@ -538,6 +564,9 @@ setMode();
 function nextRound(){if(RM&&RM.started&&ri>=ROUNDS)return showResult();start()}
 $('#next').onclick=nextRound;
 showMenu();
+/* Einladungslink ?raum=CODE: direkt zum Beitreten öffnen */
+var INV='';try{INV=(new URLSearchParams(location.search).get('raum')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)}catch(e){}
+if(INV.length===4){S.cat=S.cat||'spieler';GO='friends';MENU.style.display='none';WRAP.classList.remove('solo');WRAP.classList.add('lobby');$('#mpp').classList.remove('hide');renderMP();mpMsg('Gib deinen Namen ein und tippe auf Beitreten.')}
 </script>
 </body>
 </html>
