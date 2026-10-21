@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stationen – Wer hat hier gespielt?</title>
+<meta name="theme-color" content="#0A241B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stationen">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
 :root{--pitch:#0A241B;--grass:#12392A;--line:#21604A;--chalk:#F3F1E7;--mute:#9DB8AA;--yel:#F2D335;--ok:#4CD08A;--bad:#F0647A;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -54,7 +62,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-of
 .opts button{min-height:60px;padding:14px 12px;font-size:15px;line-height:1.2;border-radius:14px}
 .opts button::before{counter-increment:o;content:counter(o,upper-alpha) ":";color:var(--yel);font-weight:700;margin-right:8px}
 .opts button:disabled{color:var(--chalk)}
-#menu,#lvl,#res{position:fixed;inset:0;z-index:50;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 50% at 50% 30%,#14503A 0,transparent 70%),repeating-linear-gradient(90deg,#0A241B 0 56px,#0C2A1F 56px 112px)}
+#menu,#lvl,#res,#stat{position:fixed;inset:0;z-index:50;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 50% at 50% 30%,#14503A 0,transparent 70%),repeating-linear-gradient(90deg,#0A241B 0 56px,#0C2A1F 56px 112px)}
 #menu h1{font-size:68px;letter-spacing:1px}
 #menu .tag{color:var(--mute);margin:10px 0 28px;max-width:300px;line-height:1.4}
 .demo{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:140px;width:100%;margin-bottom:28px}
@@ -73,8 +81,16 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-of
 .cfg label{flex:1;font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:4px}
 .cfg select{font:500 16px 'Barlow',sans-serif;color:var(--chalk);background:#0A241B;border:2px solid var(--line);border-radius:10px;padding:9px;width:100%}
 #lvl .cats{display:flex;gap:8px;width:min(100%,360px);margin:0 0 16px}
-#lvl .cats .btn{flex:1;width:auto;margin:0;padding:11px 4px;font-size:16px}
-#res h2{font-size:44px;margin:0 0 6px}
+#lvl .cats .btn{flex:1;width:auto;margin:0;padding:11px 2px;font-size:15px}
+#res h2,#stat h2{font-size:44px;margin:0 0 6px}
+#stat .srow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:min(100%,360px);padding:11px 14px;border-radius:12px;background:#0A241B;border:1px solid var(--line);margin-bottom:8px;text-align:left}
+#stat .srow b{font:700 20px 'Barlow Condensed',sans-serif}#stat .srow span{color:var(--mute);font-size:14px;text-align:right}
+#stat .btn{width:min(100%,360px);flex:none;margin-top:8px}
+#lvl .lgs{display:flex;gap:8px;width:min(100%,360px);margin:-6px 0 16px}#lvl .lgs .btn{flex:1;margin:0;padding:9px 2px;font-size:14px}
+.ph{display:none;margin:0 0 6px;text-align:center}.ph .fr{position:relative;height:236px;border-radius:14px;overflow:hidden;background:#0A241B;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:15px}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;animation:in .45s ease-out}
+.ph .cr{font-size:11px;line-height:1.35;color:var(--mute);margin-top:6px;min-height:15px;word-break:break-word}.ph .cr a{color:var(--mute)}
+#res .rv{margin-bottom:10px}#res .wt{color:var(--mute);margin:0 0 12px;font-size:15px}
 #res #rl{width:min(100%,360px);margin:18px 0}
 #res .btn{width:min(100%,360px);flex:none}
 #res .mpr{font-size:17px}
@@ -112,6 +128,7 @@ button:active:not(:disabled){transform:scale(.96);filter:brightness(1.3);border-
  <div class="top"><span id="rnd"></span><span>Mögliche Punkte: <b id="pts"></b></span></div>
  <div class="bar"><i id="bar"></i></div>
  <h2 class="qh" id="qh">Welcher Spieler wird gesucht?</h2>
+ <div class="ph" id="ph"><div class="fr" id="phf"></div><div class="cr" id="phc"></div></div>
  <div class="chips" id="chips" aria-live="polite"></div>
  <div class="opts" id="opts"></div>
  <div class="letter" id="hint"></div>
@@ -237,8 +254,17 @@ const X=[
 {n:'Jude Bellingham',c:['Real Madrid','Borussia Dortmund','Birmingham City']}
 ];
 const ALL=[...P,...X];
-function poolIdx(){const c=S.cat||'spieler';return P.map((_,i)=>i).filter(i=>c==='mix'||(c==='trainer'?P[i].t:!P[i].t))}
-function newOrder(){const o=poolIdx().sort(()=>Math.random()-.5);const z=o.indexOf(0);if(z>0){o.splice(z,1);o.unshift(0)}return o}
+/* Fotorunden: Bilder und Quellenangaben kommen live von Wikimedia Commons (nur frei lizenzierte Dateien) */
+const STADIEN=[['Allianz Arena','Allianz Arena',1],['Signal Iduna Park','Westfalenstadion',1],['Veltins-Arena','Veltins-Arena',1],['Olympiastadion Berlin','Olympiastadion (Berlin)',1],['Deutsche Bank Park','Deutsche Bank Park',1],['BayArena','BayArena',1],['Borussia-Park','Borussia-Park',1],['RheinEnergieStadion','RheinEnergieStadion',1],['Weserstadion','Weserstadion',1],['Volksparkstadion','Volksparkstadion',1],['Red Bull Arena Leipzig','Red Bull Arena (Leipzig)',1],['MHPArena Stuttgart','MHPArena',1],['Volkswagen Arena','Volkswagen Arena',1],['Camp Nou','Camp Nou'],['Santiago Bernabéu','Santiago Bernabéu Stadium'],['Old Trafford','Old Trafford'],['Anfield','Anfield'],['San Siro','San Siro'],['Wembley-Stadion','Wembley Stadium'],['Parc des Princes','Parc des Princes'],['Emirates Stadium','Emirates Stadium'],['Stamford Bridge','Stamford Bridge (stadium)'],['Maracanã','Maracanã Stadium'],['Johan Cruyff Arena','Johan Cruyff Arena'],['Etihad Stadium','City of Manchester Stadium'],['Celtic Park','Celtic Park'],['Estadio Metropolitano','Metropolitano Stadium'],['Stadio Olimpico Rom','Stadio Olimpico']].map(([n,w,de])=>({n,w,s:1,de:!!de}));
+const WIKI={'Raúl':'Raúl (footballer)','Luis Enrique':'Luis Enrique','Mario Gomez':'Mario Gómez'};
+const PH=[...STADIEN,...P.map(p=>({n:p.n,w:WIKI[p.n]||p.n,t:p.t,c:p.c}))];
+function phPool(){const c=S.cat;let a=PH.filter(x=>x.s||c==='fotos'||c==='mix'||(c==='trainer'?x.t:!x.t));const f=a.filter(x=>lgOK(x));return f.length>=8?f:a}
+let PHO=[],photoTok=0;
+const DE=new Set(['Eintracht Frankfurt','Bayern München','Borussia Dortmund','Werder Bremen','1. FC Kaiserslautern','1. FC Nürnberg','TSG Hoffenheim','Bayer Leverkusen','Schalke 04','VfB Stuttgart','VfL Wolfsburg','Borussia Mönchengladbach','1. FSV Mainz 05','RB Leipzig','Hannover 96','Rot Weiss Ahlen','1. FC Köln','Hamburger SV','Hertha BSC','VfL Bochum','TSV 1860 München','Kickers Offenbach']);
+const LIGEN={alle:'Alle Ligen',bl:'Bundesliga',int:'International'};
+function lgOK(p,lg){lg=lg||S.lg||'alle';if(lg==='alle')return true;if(p.s)return lg==='bl'?!!p.de:!p.de;const d=p.c.filter(c=>DE.has(c)).length;return lg==='bl'?d>=2:p.c.length-d>=2}
+function poolIdx(){const c=S.cat==='trainer'?'trainer':S.cat==='spieler'?'spieler':'mix';const base=P.map((_,i)=>i).filter(i=>c==='mix'||(c==='trainer'?P[i].t:!P[i].t));const f=base.filter(i=>lgOK(P[i]));return f.length>=6?f:base}
+function newOrder(){PHO=shuf(phPool());const o=shuf(poolIdx());const z=o.indexOf(0);if(z>0){o.splice(z,1);o.unshift(0)}return o}
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
 const hue=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h};
 const MODES={
@@ -283,9 +309,13 @@ const save=()=>{try{localStorage.setItem('st',JSON.stringify(S))}catch(e){}};
 let order=[0,...P.map((_,i)=>i).slice(1).sort(()=>Math.random()-.5)],ri=0,cur,shown,timer,tick,t0,done;
 
 function pts(){return Math.max(1,Math.max(1,6-shown)*M().x-wrong*M().pen)}
+function kind(i){if(M().q&&i%3===2)return 'trivia';if(DAILY)return 'person';if(S.cat==='fotos')return 'photo';if(S.cat==='mix'&&i%4===3)return 'photo';return 'person'}
 function start(){
- pushPresence();
- if(M().q&&ri%3===2)return startTrivia();
+ pushPresence();photoTok++;$('#ph').style.display='none';$('.sub').textContent='Wer hat bei allen diesen Vereinen gespielt?';
+ const k=kind(ri);if(k==='trivia')return startTrivia();if(k==='photo')return startPhoto();
+ startPerson();
+}
+function startPerson(){
  $('#opts').innerHTML='';$('#chips').style.display='';$('#qh').textContent='Welcher Spieler wird gesucht?';
  const p=P[order[ri%order.length]];cur=p;$('#qh').textContent=p.t?'Welcher Trainer wird gesucht?':'Welcher Spieler wird gesucht?';$('#inp').placeholder=p.t?'Trainername eingeben':'Spielername eingeben';$('.sub').textContent=p.t?'Wer hat alle diese Vereine trainiert?':'Wer hat bei allen diesen Vereinen gespielt?';shown=2;done=false;wrong=0;
  $('#chips').innerHTML='';p.c.slice(0,2).forEach((c,i)=>addChip(c,i+1,false));
@@ -309,7 +339,8 @@ function schedule(){
 }
 function mask(){const rv=shown>=4;return cur.n.split(' ').map((w,wi)=>[...w].map((ch,i)=>ch==='-'?'-':(rv&&wi===0&&i===0?ch:'_')).join(' ')).join('   ')+'  ('+cur.n.replace(/[ -]/g,'').length+' Buchstaben)'}
 function hud(){$('#pts').textContent=pts();$('#sc').textContent=S.score;$('#hint').textContent=(M().hint&&!done)?mask():''}
-function finish(win){
+function stat(win){if(DAILY)return;S.st=S.st||{};const k=S.mode||'leicht';const t=S.st[k]=S.st[k]||{p:0,w:0,c:0,b:0};t.p++;if(win){t.w++;t.c++;t.b=Math.max(t.b,t.c)}else t.c=0;save()}
+function finish(win){stat(win);
  done=true;clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';
  cur.c.slice(shown).forEach((c,i)=>addChip(c,shown+i+1));
  const m=$('#msg');
@@ -364,12 +395,59 @@ function startTrivia(){
    if(done)return;done=true;
    o.querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.textContent===t.a)y.classList.add('ok')});
    const m=$('#msg');
+   stat(x===t.a);
    if(x===t.a){sfx('ok');gain(3*M().x);save();m.textContent='Richtig! (+'+3*M().x+' Punkte)';m.className='msg ok'}
    else{sfx('bad');b.classList.add('bad');m.textContent='Richtig wäre: '+t.a;m.className='msg bad'}
    $('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
   };
   o.appendChild(b);
  });
+}
+const PHC=new Map();
+function getPhoto(x){
+ if(PHC.has(x.w))return PHC.get(x.w);
+ const pr=(async()=>{
+  try{
+   const q=u=>{const ac=new AbortController();const t=setTimeout(()=>ac.abort(),8000);return fetch(u,{signal:ac.signal}).then(r=>r.ok?r.json():null).finally(()=>clearTimeout(t))};
+   const a=await q('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages&piprop=name&titles='+encodeURIComponent(x.w));
+   const pg=a&&a.query&&Object.values(a.query.pages||{})[0];const f=pg&&pg.pageimage;if(!f)return null;
+   const b=await q('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&titles='+encodeURIComponent('File:'+f));
+   const cp=b&&b.query&&Object.values(b.query.pages||{})[0];const ii=cp&&cp.imageinfo&&cp.imageinfo[0];if(!ii||!ii.thumburl)return null;
+   const m=ii.extmetadata||{};const txt=h=>{const d=document.createElement('div');d.innerHTML=String(h||'');return d.textContent.replace(/\s+/g,' ').trim()};
+   const lic=txt(m.LicenseShortName&&m.LicenseShortName.value);if(!lic||/fair use|non-free/i.test(lic))return null;
+   const img=new Image();img.src=ii.thumburl;await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;setTimeout(no,9000)});
+   return{src:ii.thumburl,page:ii.descriptionurl,artist:txt(m.Artist&&m.Artist.value).slice(0,80)||'Unbekannt',lic,licUrl:(m.LicenseUrl&&m.LicenseUrl.value)||''};
+  }catch(e){return null}
+ })();
+ PHC.set(x.w,pr);return pr;
+}
+async function startPhoto(){
+ const my=photoTok;done=false;clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';
+ $('#chips').innerHTML='';$('#chips').style.display='none';$('#hint').textContent='';$('#sug').innerHTML='';$('#msg').textContent='';$('#msg').className='msg';
+ $('#inw').classList.add('hide');$('#give').classList.add('hide');$('#next').classList.add('hide');$('#opts').innerHTML='';
+ $('#rnd').textContent=rl()+' · Fotorunde';$('#pts').textContent=3*M().x;
+ if(!PHO.length)PHO=shuf(phPool());
+ $('#ph').style.display='block';$('#phf').textContent='Foto wird geladen …';$('#phc').textContent='';$('#qh').textContent='Was ist auf dem Foto?';
+ let x=null,ph=null;const base=ri*3;
+ for(let k=0;k<6&&!ph;k++){x=PHO[(base+k)%PHO.length];ph=await getPhoto(x);if(my!==photoTok)return}
+ if(!ph){$('#ph').style.display='none';photoTok++;return startPerson()}
+ $('#qh').textContent=x.s?'Welches Stadion ist das?':x.t?'Welcher Trainer ist das?':'Welcher Spieler ist das?';
+ $('.sub').textContent='Erkennst du, was auf dem Foto ist?';
+ const im=document.createElement('img');im.src=ph.src;if(!x.s)im.style.objectPosition='center 22%';im.alt='Foto zum Erraten';$('#phf').innerHTML='';$('#phf').appendChild(im);
+ const c=$('#phc');c.textContent='Foto: '+ph.artist+' · ';const l1=document.createElement('a');l1.href=ph.licUrl||ph.page;l1.target='_blank';l1.rel='noopener';l1.textContent=ph.lic;const l2=document.createElement('a');l2.href=ph.page;l2.target='_blank';l2.rel='noopener';l2.textContent='Wikimedia Commons';c.append(l1,' · via ',l2);
+ const same=PH.filter(y=>y!==x&&y.n!==x.n&&(x.s?y.s:!y.s&&!y.t===!x.t));
+ {const sl=same.filter(y=>lgOK(y));if(sl.length>=3)same.splice(0,same.length,...sl)}
+ const r=rng(ri+'|'+x.n+'|'+(RM?RM.code+RM.game:Math.random()));
+ const opts=shuf([x,...shuf(same.slice(),r).slice(0,3)],r);
+ const o=$('#opts');
+ opts.forEach(y=>{const b=document.createElement('button');b.textContent=y.n;b.onclick=()=>{
+  if(done)return;done=true;o.querySelectorAll('button').forEach(z=>{z.disabled=true;if(z.textContent===x.n)z.classList.add('ok')});
+  const m=$('#msg');stat(y===x);
+  if(y===x){sfx('ok');gain(3*M().x);save();m.textContent='Richtig! (+'+3*M().x+' Punkte)';m.className='msg ok'}
+  else{sfx('bad');b.classList.add('bad');m.textContent='Richtig wäre: '+x.n;m.className='msg bad'}
+  $('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
+  const nx=PHO[(ri*3)%PHO.length];if(nx)getPhoto(nx);
+ };o.appendChild(b)});
 }
 function renderMC(){
  const o=$('#opts');o.innerHTML='';$('#inw').classList.toggle('hide',!!M().mc);
@@ -414,9 +492,11 @@ async function fbJoin(id){
 }
 let RM=null,ROOM=null;
 function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
-function pushPresence(){if(ROOM&&RM)ROOM.presence({name:RM.name,score:RM.score,round:ri+1,host:RM.host?1:0}).catch(()=>{})}
+function pushPresence(){if(ROOM&&RM)ROOM.presence(Object.assign({name:RM.name,score:RM.score,round:ri+1,host:RM.host?1:0,done:RM.done?1:0},RM.gi||{})).catch(()=>{})}
 function code4(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
-function seeded(code){let h=1779033703;for(const ch of code)h=Math.imul(h^ch.charCodeAt(0),3432918353);let a=h|0;const r=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};const o=poolIdx();for(let i=o.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[o[i],o[j]]=[o[j],o[i]]}return o}
+function rng(code){let h=1779033703;for(const ch of String(code))h=Math.imul(h^ch.charCodeAt(0),3432918353);let a=h|0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(o,r){r=r||Math.random;for(let i=o.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[o[i],o[j]]=[o[j],o[i]]}return o}
+function seeded(code){const r=rng(code);PHO=shuf(phPool(),r);return shuf(poolIdx(),r)}
 function mpMsg(t){const e=$('#mpm');if(e)e.textContent=t}
 async function joinRoom(raw,host){
  const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
@@ -426,7 +506,7 @@ async function joinRoom(raw,host){
  let r=null;
  try{if(inClaude()){const rm=await window.claude.use('room');r=rm&&await rm.join('stationen-'+code.toLowerCase())}else r=await fbJoin('stationen-'+code.toLowerCase())}catch(e){}
  if(!r)return mpMsg(inClaude()?'Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.':FIREBASE_DB_URL?'Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es noch mal.':'Mehrspieler ist noch nicht eingerichtet (Firebase fehlt).');
- ROOM=r;RM={code,name:nick,score:0,started:false,host:!!host,peers:r.peers()};try{if(location.search)history.replaceState(null,'',location.pathname)}catch(e){}S.nick=nick;save();
+ ROOM=r;RM={code,name:nick,score:0,started:false,game:0,host:!!host,peers:r.peers()};try{if(location.search)history.replaceState(null,'',location.pathname)}catch(e){}S.nick=nick;save();
  order=seeded(code);ri=0;
  RM.seen=new Set(namesIn(RM.peers));
  r.onPeers(c=>{if(!RM||ROOM!==r)return;RM.peers=c.peers;const now=namesIn(c.peers);RM.fresh=now.filter(n=>!RM.seen.has(n));const gone=[...RM.seen].filter(n=>!now.includes(n));RM.seen=new Set(now);renderMP();
@@ -453,7 +533,7 @@ function renderMP(){
  }
  p.innerHTML='<div class="mph">Raum <b></b></div><div id="mpl"></div><div class="mprow"><button class="btn y" id="mps" type="button">Einladung teilen</button><button class="btn" id="mpx" type="button">Verlassen</button></div><textarea id="mpt" class="hide" readonly rows="3"></textarea><p class="note" id="mpm">Alle spielen dieselben Spieler in derselben Reihenfolge, auf der Stufe des Spielstarters.</p>';
  p.querySelector('.mph b').textContent=RM.code;
- if(RM.started)mpMsg('Für alle im Raum: Stufe '+MODES[S.mode||'leicht'].name+', '+ROUNDS+' Runden'+(RM.sec?', '+RM.sec+' Sek. pro Verein':'')+'.');
+ if(RM.started)mpMsg('Für alle im Raum: Stufe '+MODES[S.mode||'leicht'].name+', '+LIGEN[S.lg||'alle']+', '+ROUNDS+' Runden'+(RM.sec?', '+RM.sec+' Sek. pro Verein':'')+'.');
  const L=$('#mpl');
  const ps=[...RM.peers].filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined).sort((a,b)=>RM.started?(b.presence.score|0)-(a.presence.score|0):(b.isMe?1:0)-(a.isMe?1:0));
  if(!RM.started){const h=document.createElement('div');h.className='mpcnt';h.textContent='Spieler im Raum: '+ps.length;L.appendChild(h)}
@@ -475,24 +555,35 @@ function renderMP(){
   L.after(c);
   c.querySelector('#cfR').onchange=e=>{RM.rounds=+e.target.value};
   c.querySelector('#cfS').onchange=e=>{RM.sec=+e.target.value};
-  const g=document.createElement('button');g.type='button';g.className='btn y';const pc=ps.length;g.textContent=pc<2?'Allein starten':'Spiel starten ('+pc+' Spieler)';g.style.cssText='display:block;width:100%;margin-bottom:10px';g.onclick=()=>{RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.rounds=RM.rounds||10;RM.sec=RM.sec||0;ROOM.presence({go:1,glvl:RM.lvl,gcat:RM.cat,gr:RM.rounds,gs:RM.sec}).catch(()=>{});beginRoom()};c.after(g)}
+  const g=document.createElement('button');g.type='button';g.className='btn y';const pc=ps.length;g.textContent=pc<2?'Allein starten':'Spiel starten ('+pc+' Spieler)';g.style.cssText='display:block;width:100%;margin-bottom:10px';g.onclick=()=>{RM.rounds=RM.rounds||10;RM.sec=RM.sec||0;goNow()};c.after(g)}
 }
 const MP=document.createElement('div');MP.className='mp';
 MP.innerHTML='<button class="btn" id="mpb" type="button">Mit Freunden spielen</button><div class="mpp hide" id="mpp"></div>';
 document.querySelector('header').after(MP);
 $('#mpb').onclick=()=>{$('#mpp').classList.toggle('hide');if(!RM)renderMP()};
 renderMP();
-function goCheck(){if(!RM||RM.started)return;const g=RM.peers.find(x=>x.presence&&x.presence.go===1);if(g){RM.lvl=MODES[g.presence.glvl]?g.presence.glvl:(S.mode||'leicht');RM.cat=['spieler','trainer','mix'].includes(g.presence.gcat)?g.presence.gcat:'spieler';RM.rounds=[5,10,15,20].includes(g.presence.gr)?g.presence.gr:10;RM.sec=[0,6,8,10,12].includes(g.presence.gs)?g.presence.gs:0;beginRoom()}}
-function beginRoom(){if(!RM||RM.started)return;RM.started=true;ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;if(RM.cat)S.cat=RM.cat;save()}order=seeded(RM.code);ri=0;document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
+function goNow(){const n=(RM.game|0)+1;RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.lg=S.lg||'alle';RM.gi={go:n,glvl:RM.lvl,gcat:RM.cat,gl:RM.lg,gr:RM.rounds||10,gs:RM.sec||0};beginRoom(n)}
+function goCheck(){if(!RM)return;const g=RM.peers.find(x=>!x.isMe&&x.presence&&(x.presence.go|0)>(RM.game|0));if(!g)return;const q=g.presence;RM.lvl=MODES[q.glvl]?q.glvl:(S.mode||'leicht');RM.cat=['spieler','trainer','mix','fotos'].includes(q.gcat)?q.gcat:'spieler';RM.lg=LIGEN[q.gl]?q.gl:'alle';RM.rounds=[5,10,15,20].includes(q.gr)?q.gr:10;RM.sec=[0,6,8,10,12].includes(q.gs)?q.gs:0;beginRoom(q.go|0)}
+function beginRoom(n){if(!RM||(RM.game|0)>=n)return;RM.game=n;RM.started=true;RM.score=0;RM.done=0;ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;S.cat=RM.cat||'spieler';S.lg=RM.lg||'alle';save()}order=seeded(RM.code+'#'+n);ri=0;RES.style.display='none';pushPresence();document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
 /* Anfangsmenü: Startbildschirm vor dem Spiel, Wahl zwischen Allein und Freunden */
 const MENU=document.createElement('div');MENU.id='menu';
-MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip"><span class="crest" style="--h:'+hue(c)+'">'+ini(c)+'</span>'+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p>';
+MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip"><span class="crest" style="--h:'+hue(c)+'">'+ini(c)+'</span>'+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mStat" type="button">Statistik</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p>';
 document.body.appendChild(MENU);
 const WRAP=document.querySelector('.wrap');
 const BM=document.createElement('button');BM.className='menubtn';BM.type='button';BM.textContent='‹ Spiel verlassen';WRAP.prepend(BM);
-function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=(S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge';LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent='Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
+function showMenu(){RES.style.display='none';$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an');if(DAILY){order=newOrder();ri=0}DAILY=false;$('#next').onclick=nextRound;$('#mDaily').textContent=((S.daily&&S.daily.d===today())?'Tägliche Challenge: erledigt ✓':'Tägliche Challenge')+(dStreak()?' · 🔥 '+dStreak():'');LVL.style.display='none';clearTimeout(timer);cancelAnimationFrame(tick);$('#mInfo').textContent='Stufe: '+M().name+' · '+S.score+' Punkte';MENU.style.display='flex';MENU.scrollTop=0}
 function hideMenu(){MENU.style.display='none';window.scrollTo(0,0)}
 BM.onclick=()=>{if(RM&&!RM.started)quitRoom();showMenu()};
+const ST=document.createElement('div');ST.id='stat';ST.style.display='none';document.body.appendChild(ST);
+function showStats(){
+ MENU.style.display='none';ST.innerHTML='<h2>Statistik</h2><p class="tag">Nur Spiele allein und mit Freunden, ohne tägliche Challenge.</p>';
+ const row=(a,b)=>{const d=document.createElement('div');d.className='srow';const x=document.createElement('b');x.textContent=a;const y=document.createElement('span');y.textContent=b;d.append(x,y);ST.appendChild(d)};
+ Object.entries(MODES).forEach(([k,v])=>{const t=(S.st||{})[k];row(v.name,t&&t.p?t.p+' Runden · '+Math.round(100*t.w/t.p)+' % richtig · Beste Serie '+t.b:'noch nicht gespielt')});
+ row('Tägliche Challenge',dStreak()?'🔥 '+dStreak()+(dStreak()>1?' Tage':' Tag')+' in Folge · Rekord '+(S.dbest|0):'Serie: 0 · Rekord '+(S.dbest|0));
+ row('Gesamtpunkte',String(S.score|0));
+ const bk=document.createElement('button');bk.type='button';bk.className='btn y';bk.textContent='‹ Zurück';bk.onclick=()=>{ST.style.display='none';showMenu()};ST.appendChild(bk);
+ ST.style.display='flex';ST.scrollTop=0;
+}
 const RES=document.createElement('div');RES.id='res';RES.style.display='none';document.body.appendChild(RES);
 const CD=document.createElement('div');CD.id='cd';document.body.appendChild(CD);
 function countdown(cb){
@@ -501,9 +592,9 @@ function countdown(cb){
  show(n);
  const t=setInterval(()=>{n--;if(n>0)show(n);else if(n===0)show('Los!');else{clearInterval(t);CD.style.display='none';cb()}},800);
 }
-function updNext(){let t='Nächster Spieler';if(RM&&RM.started&&ri>=ROUNDS)t='Ergebnis anzeigen';else if(M().q&&ri%3===2)t='Nächste Frage';else{const p=P[order[ri%order.length]];if(p&&p.t)t='Nächster Trainer'}$('#next').textContent=t}
+function updNext(){let t='Nächster Spieler';const k=kind(ri);if(RM&&RM.started&&ri>=ROUNDS)t='Ergebnis anzeigen';else if(k==='trivia')t='Nächste Frage';else if(k==='photo')t='Nächstes Foto';else{const p=P[order[ri%order.length]];if(p&&p.t)t='Nächster Trainer'}$('#next').textContent=t}
 function showResult(){
- sfx('win');if(ROOM)ROOM.presence({done:1}).catch(()=>{});
+ sfx('win');if(RM){RM.done=1;pushPresence()}
  RES.style.display='flex';renderResult();
 }
 function renderResult(){
@@ -518,14 +609,22 @@ function renderResult(){
   const b=document.createElement('b');b.textContent=(x.presence.score|0)+' Pkt'+(x.presence.done?'':' · spielt noch');
   d.append(n,b);L.appendChild(d);
  });
- const lv=document.createElement('button');lv.type='button';lv.className='btn y';lv.textContent='Raum verlassen';
+ const ps=RM.peers.filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined);
+ const lead=RM.host||!ps.some(x=>!x.isMe&&x.presence.host);
+ if(lead){const rv=document.createElement('button');rv.type='button';rv.className='btn y rv';rv.textContent='Revanche';rv.onclick=()=>{RES.style.display='none';goNow()};RES.appendChild(rv)}
+ else{const hn=ps.find(x=>!x.isMe&&x.presence.host);const w=document.createElement('p');w.className='wt';w.textContent='Warte auf die Revanche von '+(hn?String(hn.presence.name).slice(0,16):'dem Raumersteller')+' …';RES.appendChild(w)}
+ const lv=document.createElement('button');lv.type='button';lv.className='btn';lv.textContent='Raum verlassen';
  lv.onclick=()=>{RES.style.display='none';leaveRoom()};RES.appendChild(lv);
 }
+$('#mStat').onclick=showStats;
 $('#mSnd').onclick=()=>{S.snd=S.snd===0?1:0;save();$('#mSnd').textContent='Ton und Vibration: '+(S.snd===0?'aus':'an')};
 /* Tägliche Challenge */
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dailyIdx(){const d=new Date();const pl=P.map((_,i)=>i).filter(i=>!P[i].t);return pl[Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%pl.length]}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dStreak(){const y=new Date();y.setDate(y.getDate()-1);return (S.dlast===today()||S.dlast===ymd(y))?(S.dser|0):0}
 function dailyDone(win){
+ if(S.dlast!==today()){const y=new Date();y.setDate(y.getDate()-1);S.dser=S.dlast===ymd(y)?(S.dser|0)+1:1;S.dlast=today();S.dbest=Math.max(S.dbest|0,S.dser)}
  const sq=win?'⬜'.repeat(shown-1)+'🟩':'🟥'.repeat(shown);
  S.daily={d:today(),win,txt:'Stationen '+today()+'\n'+sq+'\n'+URL_()};save();
  $('#next').textContent='Ergebnis teilen';$('#next').onclick=shareDaily;
@@ -545,15 +644,18 @@ const LVL=document.createElement('div');LVL.id='lvl';LVL.style.display='none';do
 let GO='solo';
 function showLevels(go){
  GO=go;MENU.style.display='none';
- if(go==='friends'&&RM&&RM.started){if(RM.lvl)S.mode=RM.lvl;if(RM.cat)S.cat=RM.cat;launch();return}
+ if(go==='friends'&&RM&&RM.started){if(RM.lvl)S.mode=RM.lvl;if(RM.cat)S.cat=RM.cat;if(RM.lg)S.lg=RM.lg;launch();return}
  LVL.innerHTML='<h2>Schwierigkeit wählen</h2><p class="tag">'+(go==='friends'?'Stufe und Kategorie des Spielstarters gelten für alle im Raum.':'Je höher die Stufe, desto mehr Punkte.')+'</p>';
  const cats=document.createElement('div');cats.className='cats';
- [['spieler','Spieler'],['trainer','Trainer'],['mix','Gemischt']].forEach(([k,n])=>{
+ [['spieler','Spieler'],['trainer','Trainer'],['mix','Gemischt'],['fotos','Fotos']].forEach(([k,n])=>{
   const b=document.createElement('button');b.type='button';b.textContent=n;b.className='btn'+((S.cat||'spieler')===k?' y':'');
   b.onclick=()=>{S.cat=k;save();cats.querySelectorAll('button').forEach(x=>x.classList.toggle('y',x===b))};
   cats.appendChild(b);
  });
  LVL.appendChild(cats);
+ const lgs=document.createElement('div');lgs.className='lgs';
+ Object.entries(LIGEN).forEach(([k,n])=>{const b=document.createElement('button');b.type='button';b.textContent=n;b.className='btn'+((S.lg||'alle')===k?' y':'');b.onclick=()=>{S.lg=k;save();lgs.querySelectorAll('button').forEach(x=>x.classList.toggle('y',x===b))};lgs.appendChild(b)});
+ LVL.appendChild(lgs);
  Object.entries(MODES).forEach(([k,v])=>{
   const b=document.createElement('button');b.type='button';b.className='btn lv'+((S.mode||'leicht')===k?' on':'');
   b.innerHTML='<b></b><small></small>';b.firstChild.textContent=v.name+' · '+v.x+'× Punkte';b.lastChild.textContent=v.d;
@@ -565,7 +667,7 @@ function showLevels(go){
  LVL.style.display='flex';LVL.scrollTop=0;
 }
 function launch(){
- setMode();hideMenu();
+ setMode();hideMenu();PHO=shuf(phPool());if(S.cat==='fotos'||S.cat==='mix')PHO.slice(0,2).forEach(getPhoto);
  if(GO==='solo'){order=newOrder();ri=0;WRAP.classList.remove('lobby');WRAP.classList.add('solo');start()}
  else{WRAP.classList.remove('solo');if(RM&&RM.started){WRAP.classList.remove('lobby');start()}else{WRAP.classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick);$('#mpp').classList.remove('hide');renderMP()}}
 }
