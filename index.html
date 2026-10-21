@@ -680,6 +680,8 @@ setMode();
 function nextRound(){if(RM&&RM.started&&ri>=ROUNDS)return showResult();start()}
 $('#next').onclick=nextRound;
 showMenu();
+/* Offline-Unterstützung auf GitHub: Erst Internet, dann Zwischenspeicher */
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!inClaude())navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 /* Einladungslink ?raum=CODE: direkt zum Beitreten öffnen */
 var INV='';try{INV=(new URLSearchParams(location.search).get('raum')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)}catch(e){}
 if(INV.length===4){S.cat=S.cat||'spieler';GO='friends';MENU.style.display='none';WRAP.classList.remove('solo');WRAP.classList.add('lobby');$('#mpp').classList.remove('hide');renderMP();mpMsg('Gib deinen Namen ein und tippe auf Beitreten.')}
