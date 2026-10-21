@@ -89,7 +89,8 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-of
 .mprow{display:flex;gap:8px;margin-bottom:10px}.mprow input{margin-bottom:0;flex:1;min-width:0;text-transform:uppercase}
 .mph{font:700 22px 'Barlow Condensed',sans-serif;margin-bottom:10px}
 .mpr{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:#0A241B;margin-bottom:6px;font-size:15px;border:1px solid transparent}
-.mpr.me{border-color:var(--yel)}.mpr b{color:var(--yel);font-weight:600;text-align:right}
+.mpr.me{border-color:var(--yel)}.mpr.new{animation:joinin .9s ease-out}@keyframes joinin{0%{opacity:0;transform:translateY(10px);box-shadow:0 0 0 0 rgba(76,208,138,.0)}40%{opacity:1;transform:none;box-shadow:0 0 18px rgba(76,208,138,.7);border-color:var(--ok)}100%{box-shadow:none}}
+.mpcnt{font:600 15px 'Barlow',sans-serif;color:var(--mute);margin:2px 0 8px;text-align:left}.mpwait{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--mute);margin-bottom:6px;font-size:15px}.mpwait i{width:8px;height:8px;border-radius:50%;background:var(--yel);animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}.mpr .rd{color:var(--ok)}.mpr b{color:var(--yel);font-weight:600;text-align:right}
 .pl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pl button{display:flex;align-items:center;gap:10px;text-align:left;background:var(--grass);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--chalk);font:500 14px 'Barlow',sans-serif;cursor:pointer}
 .av{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:700 13px 'Barlow Condensed',sans-serif;background:hsl(var(--h) 35% 30%);color:#fff}
@@ -427,9 +428,13 @@ async function joinRoom(raw){
  if(!r)return mpMsg(inClaude()?'Mehrspieler ist hier nicht verfügbar. Er funktioniert nur für angemeldete, eingeladene Personen.':FIREBASE_DB_URL?'Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es noch mal.':'Mehrspieler ist noch nicht eingerichtet (Firebase fehlt).');
  ROOM=r;RM={code,name:nick,score:0,started:false,peers:r.peers()};S.nick=nick;save();
  order=seeded(code);ri=0;
- r.onPeers(c=>{RM.peers=c.peers;renderMP();goCheck();renderResult()});
+ RM.seen=new Set(namesIn(RM.peers));
+ r.onPeers(c=>{RM.peers=c.peers;const now=namesIn(c.peers);RM.fresh=now.filter(n=>!RM.seen.has(n));const gone=[...RM.seen].filter(n=>!now.includes(n));RM.seen=new Set(now);renderMP();
+  if(!RM.started){if(RM.fresh.length){sfx('tap');mpMsg(RM.fresh.join(', ')+(RM.fresh.length>1?' sind':' ist')+' beigetreten.')}else if(gone.length)mpMsg(gone.join(', ')+' hat den Raum verlassen.')}
+  goCheck();renderResult()});
  pushPresence();$('#mpp').classList.remove('hide');renderMP();goCheck();if(!RM.started){document.querySelector('.wrap').classList.add('lobby');clearTimeout(timer);cancelAnimationFrame(tick)}
 }
+function namesIn(ps){return ps.filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined&&!x.isMe).map(x=>String(x.presence.name).slice(0,16))}
 function leaveRoom(){try{ROOM&&ROOM.leave()}catch(e){}ROOM=null;RM=null;order=newOrder();ri=0;renderMP();showMenu()}
 async function share(){
  const txt='Spiel mit mir Stationen! '+(inClaude()?URL_()+' · Raum-Code: '+RM.code:URL_()+'?raum='+RM.code);
@@ -449,12 +454,17 @@ function renderMP(){
  p.querySelector('.mph b').textContent=RM.code;
  if(RM.started)mpMsg('Für alle im Raum: Stufe '+MODES[S.mode||'leicht'].name+', '+ROUNDS+' Runden'+(RM.sec?', '+RM.sec+' Sek. pro Verein':'')+'.');
  const L=$('#mpl');
- [...RM.peers].filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined).sort((a,b)=>(b.presence.score|0)-(a.presence.score|0)).forEach(x=>{
-  const d=document.createElement('div');d.className='mpr'+(x.isMe?' me':'');
-  const n=document.createElement('span');n.textContent=String(x.presence.name).slice(0,16)+(x.isMe?' (du)':'');
-  const s=document.createElement('b');s.textContent=(x.presence.score|0)+' Pkt · Runde '+(x.presence.round|0);
+ const ps=[...RM.peers].filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined).sort((a,b)=>RM.started?(b.presence.score|0)-(a.presence.score|0):(b.isMe?1:0)-(a.isMe?1:0));
+ if(!RM.started){const h=document.createElement('div');h.className='mpcnt';h.textContent='Spieler im Raum: '+ps.length;L.appendChild(h)}
+ ps.forEach(x=>{
+  const nm=String(x.presence.name).slice(0,16);
+  const d=document.createElement('div');d.className='mpr'+(x.isMe?' me':'')+(!x.isMe&&RM.fresh&&RM.fresh.includes(nm)?' new':'');
+  const n=document.createElement('span');n.textContent=nm+(x.isMe?' (du)':'');
+  const s=document.createElement('b');
+  if(RM.started)s.textContent=(x.presence.score|0)+' Pkt · Runde '+(x.presence.round|0);else{s.className='rd';s.textContent='bereit ✓'}
   d.append(n,s);L.appendChild(d);
  });
+ if(!RM.started){const w=document.createElement('div');w.className='mpwait';w.innerHTML='<i></i><span></span>';w.lastChild.textContent=ps.length<2?'Warte auf Spieler … Teile die Einladung.':'Weitere Spieler können noch beitreten …';L.appendChild(w)}
  $('#mps').onclick=share;$('#mpx').onclick=leaveRoom;
  if(!RM.started){
   const c=document.createElement('div');c.className='cfg';
@@ -462,7 +472,7 @@ function renderMP(){
   L.after(c);
   c.querySelector('#cfR').onchange=e=>{RM.rounds=+e.target.value};
   c.querySelector('#cfS').onchange=e=>{RM.sec=+e.target.value};
-  const g=document.createElement('button');g.type='button';g.className='btn y';g.textContent='Spiel starten';g.style.cssText='display:block;width:100%;margin-bottom:10px';g.onclick=()=>{RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.rounds=RM.rounds||10;RM.sec=RM.sec||0;ROOM.presence({go:1,glvl:RM.lvl,gcat:RM.cat,gr:RM.rounds,gs:RM.sec}).catch(()=>{});beginRoom()};c.after(g)}
+  const g=document.createElement('button');g.type='button';g.className='btn y';const pc=ps.length;g.textContent=pc<2?'Allein starten':'Spiel starten ('+pc+' Spieler)';g.style.cssText='display:block;width:100%;margin-bottom:10px';g.onclick=()=>{RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.rounds=RM.rounds||10;RM.sec=RM.sec||0;ROOM.presence({go:1,glvl:RM.lvl,gcat:RM.cat,gr:RM.rounds,gs:RM.sec}).catch(()=>{});beginRoom()};c.after(g)}
 }
 const MP=document.createElement('div');MP.className='mp';
 MP.innerHTML='<button class="btn" id="mpb" type="button">Mit Freunden spielen</button><div class="mpp hide" id="mpp"></div>';
