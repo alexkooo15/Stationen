@@ -264,7 +264,7 @@ const DE=new Set(['Eintracht Frankfurt','Bayern München','Borussia Dortmund','W
 const LIGEN={alle:'Alle Ligen',bl:'Bundesliga',int:'International'};
 function lgOK(p,lg){lg=lg||S.lg||'alle';if(lg==='alle')return true;if(p.s)return lg==='bl'?!!p.de:!p.de;const d=p.c.filter(c=>DE.has(c)).length;return lg==='bl'?d>=2:p.c.length-d>=2}
 function poolIdx(){const c=S.cat==='trainer'?'trainer':S.cat==='spieler'?'spieler':'mix';const base=P.map((_,i)=>i).filter(i=>c==='mix'||(c==='trainer'?P[i].t:!P[i].t));const f=base.filter(i=>lgOK(P[i]));return f.length>=6?f:base}
-function newOrder(){PHO=shuf(phPool());const o=shuf(poolIdx());const z=o.indexOf(0);if(z>0){o.splice(z,1);o.unshift(0)}return o}
+function newOrder(){PHO=shuf(phPool());const o=shuf(poolIdx());return o}
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
 const hue=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h};
 const MODES={
