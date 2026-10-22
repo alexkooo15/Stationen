@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Stationen – Wer hat hier gespielt?</title>
+<title>Stationen – Das Fußball-Wissensquiz</title>
 <meta name="theme-color" content="#0A241B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -64,6 +64,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--yel);outline-of
 .opts button:disabled{color:var(--chalk)}
 #menu,#lvl,#res,#stat{position:fixed;inset:0;z-index:50;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 50% at 50% 30%,#14503A 0,transparent 70%),repeating-linear-gradient(90deg,#0A241B 0 56px,#0C2A1F 56px 112px)}
 #menu h1{font-size:68px;letter-spacing:1px}
+#menu .msub{margin:6px 0 0;font:600 15px 'Barlow',sans-serif;letter-spacing:2.5px;text-transform:uppercase;color:var(--yel)}
 #menu .tag{color:var(--mute);margin:10px 0 28px;max-width:300px;line-height:1.4}
 .demo{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:140px;width:100%;margin-bottom:28px}
 .demo .chip{opacity:0;animation:in .5s ease-out forwards}
@@ -471,7 +472,7 @@ function goCheck(){if(!RM)return;const g=RM.peers.find(x=>!x.isMe&&x.presence&&(
 function beginRoom(n){if(!RM||(RM.game|0)>=n)return;RM.game=n;RM.started=true;RM.score=0;RM.done=0;ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;S.cat=RM.cat||'spieler';S.lg=RM.lg||'alle';save()}order=seeded(RM.code+'#'+n);ri=0;RES.style.display='none';pushPresence();document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
 /* Anfangsmenü: Startbildschirm vor dem Spiel, Wahl zwischen Allein und Freunden */
 const MENU=document.createElement('div');MENU.id='menu';
-MENU.innerHTML='<h1>Stationen</h1><p class="tag">Erkenne den Spieler an seinen Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip"><span class="crest" style="--h:'+hue(c)+'">'+ini(c)+'</span>'+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mStat" type="button">Statistik</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p>';
+MENU.innerHTML='<h1>Stationen</h1><p class="msub">Das Fußball-Wissensquiz</p><p class="tag">Erkenne Spieler und Trainer an ihren Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip"><span class="crest" style="--h:'+hue(c)+'">'+ini(c)+'</span>'+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mStat" type="button">Statistik</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p>';
 document.body.appendChild(MENU);
 const WRAP=document.querySelector('.wrap');
 const BM=document.createElement('button');BM.className='menubtn';BM.type='button';BM.textContent='‹ Spiel verlassen';WRAP.prepend(BM);
