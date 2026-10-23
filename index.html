@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="app-version" content="2026102302">
+<meta name="app-version" content="2026102303">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stationen – Das Fußball-Wissensquiz</title>
 <meta name="theme-color" content="#0A241B">
@@ -233,6 +233,7 @@ function start(){
  startPerson();
 }
 function startPerson(){
+ giveFn=()=>finish(false);$('#give').textContent='Aufgeben';
  $('#opts').innerHTML='';$('#chips').style.display='';$('#qh').textContent='Welcher Spieler wird gesucht?';
  const p=P[order[ri%order.length]];cur=p;$('#qh').textContent=p.t?'Welcher Trainer wird gesucht?':'Welcher Spieler wird gesucht?';$('#inp').placeholder=p.t?'Trainername eingeben':'Spielername eingeben';$('.sub').textContent=p.t?'Wer hat alle diese Vereine trainiert?':'Wer hat bei allen diesen Vereinen gespielt?';shown=2;done=false;wrong=0;
  $('#chips').innerHTML='';p.c.slice(0,2).forEach((c,i)=>addChip(c,i+1,false));
@@ -285,7 +286,8 @@ $('#inp').addEventListener('input',e=>{
 });
 $('#inp').addEventListener('keydown',e=>{if(e.key==='Enter')guess(e.target.value)});
 $('#chk').onclick=()=>{const v=$('#inp').value.trim();if(!v){const m=$('#msg');m.textContent='Gib zuerst einen Namen ein.';m.className='msg hint';return}guess(v)};
-$('#give').onclick=()=>finish(false);
+let giveFn=()=>finish(false);
+$('#give').onclick=()=>giveFn();
 function ini(s){return s.replace(/[^A-Za-z\u00C0-\u017F ]/g,'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
 const PL=document.createElement('div');PL.innerHTML='<h2 class="plh">Alle Spieler</h2><div class="pl" id="plg"></div>';document.querySelector('.wrap').appendChild(PL);
 function renderPL(){
@@ -355,10 +357,11 @@ async function startPhoto(){
  im.style.transformOrigin=ox+'% '+oy+'%';im.style.transition='none';im.style.transform='scale('+Z[0]+')';void im.offsetWidth;im.style.transition='';
  const zpts=()=>Math.max(1,(Z.length-zi))*M().x+(Z.length>1?0:2*M().x);
  $('#pts').textContent=zpts();
- const zoomStep=()=>{clearTimeout(timer);cancelAnimationFrame(tick);if(done||zi>=Z.length-1){$('#bar').style.width='0';return}
-  t0=performance.now();const f=now=>{const q=Math.min(1,(now-t0)/TT());$('#bar').style.width=(q*100)+'%';if(q<1&&!done)tick=requestAnimationFrame(f)};tick=requestAnimationFrame(f);
-  timer=setTimeout(()=>{if(done)return;zi++;im.style.transform='scale('+Z[zi]+')';sfx('tick');$('#pts').textContent=zpts();zoomStep()},TT())};
- zoomStep();
+ /* Nach dem letzten Zoom-Schritt läuft noch eine letzte Zeit; danach ist die Runde vorbei */
+ const zoomStep=()=>{clearTimeout(timer);cancelAnimationFrame(tick);if(done)return;
+  const last=zi>=Z.length-1,dur=last?TT()*(Z.length>1?1:2):TT();
+  t0=performance.now();const f=now=>{const q=Math.min(1,(now-t0)/dur);$('#bar').style.width=(q*100)+'%';if(q<1&&!done)tick=requestAnimationFrame(f)};tick=requestAnimationFrame(f);
+  timer=setTimeout(()=>{if(done)return;if(last)return endPhoto(null);zi++;im.style.transform='scale('+Z[zi]+')';sfx('tick');$('#pts').textContent=zpts();zoomStep()},dur)};
  const zoomOut=()=>{clearTimeout(timer);cancelAnimationFrame(tick);$('#bar').style.width='0';im.style.transform='scale(1)'};
  const c=$('#phc');c.textContent='Foto: '+ph.artist+' · ';const l1=document.createElement('a');l1.href=ph.licUrl||ph.page;l1.target='_blank';l1.rel='noopener';l1.textContent=ph.lic;const l2=document.createElement('a');l2.href=ph.page;l2.target='_blank';l2.rel='noopener';l2.textContent='Wikimedia Commons';c.append(l1,' · via ',l2);
  const same=PH.filter(y=>y!==x&&y.n!==x.n&&(x.s?y.s:!y.s&&!y.t===!x.t));
@@ -366,14 +369,18 @@ async function startPhoto(){
  const r=rng(ri+'|'+x.n+'|'+(RM?RM.code+RM.game:Math.random()));
  const opts=shuf([x,...shuf(same.slice(),r).slice(0,3)],r);
  const o=$('#opts');
- opts.forEach(y=>{const b=document.createElement('button');b.textContent=y.n;b.onclick=()=>{
-  if(done)return;const gp=zpts();done=true;zoomOut();o.querySelectorAll('button').forEach(z=>{z.disabled=true;if(z.textContent===x.n)z.classList.add('ok')});
-  const m=$('#msg');stat(y===x);rec(y===x?gp:0);
-  if(y===x){sfx('ok');gain(gp);save();m.textContent='Richtig! (+'+gp+' Punkte)';m.className='msg ok'}
-  else{sfx('bad');b.classList.add('bad');m.textContent='Richtig wäre: '+x.n;m.className='msg bad'}
-  $('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
+ /* y = gewählte Antwort, null = Zeit abgelaufen oder aufgegeben */
+ function endPhoto(y,b,gaveUp){
+  if(done||my!==photoTok)return;const gp=zpts();done=true;zoomOut();o.querySelectorAll('button').forEach(z=>{z.disabled=true;if(z.textContent===x.n)z.classList.add('ok')});
+  const m=$('#msg');const ok=y===x;stat(ok);rec(ok?gp:0);
+  if(ok){sfx('ok');gain(gp);save();m.textContent='Richtig! (+'+gp+' Punkte)';m.className='msg ok'}
+  else{sfx('bad');if(b)b.classList.add('bad');m.textContent=(y?'':gaveUp?'Aufgegeben. ':'Zeit abgelaufen! ')+'Richtig wäre: '+x.n;m.className='msg bad'}
+  $('#give').classList.add('hide');$('#sc').textContent=S.score;$('#next').classList.remove('hide');ri++;updNext();
   const nx=PHO[(ri*3)%PHO.length];if(nx)getPhoto(nx);
- };o.appendChild(b)});
+ }
+ opts.forEach(y=>{const b=document.createElement('button');b.textContent=y.n;b.onclick=()=>endPhoto(y,b);o.appendChild(b)});
+ giveFn=()=>endPhoto(null,null,true);$('#give').textContent='Aufgeben';$('#give').classList.remove('hide');
+ zoomStep();
 }
 function renderMC(){
  const o=$('#opts');o.innerHTML='';$('#inw').classList.toggle('hide',!!M().mc);
@@ -426,7 +433,7 @@ async function fbJoin(id){
 }
 let RM=null,ROOM=null;
 function gain(n){S.score+=n;if(RM)RM.score+=n;pushPresence()}
-function pushPresence(){if(ROOM&&RM)ROOM.presence(Object.assign({name:RM.name,score:RM.score,round:ri+1,host:RM.host?1:0,done:RM.done?1:0,h:(RM.h||[]).join(',')},RM.gi||{})).catch(()=>{})}
+function pushPresence(){if(ROOM&&RM)ROOM.presence(Object.assign({name:RM.name,score:RM.score,round:ri+1,host:RM.host?1:0,done:RM.done?1:0,h:(RM.h||[]).join(','),rq:RM.rq|0,acc:RM.acc|0},RM.gi||{})).catch(()=>{})}
 /* Antworten der Mitspieler: h = Punkte je Runde, durch Komma getrennt (0 = falsch) */
 function rec(p){if(!RM||!RM.started)return;RM.h=RM.h||[];RM.h[ri]=p|0;for(let i=0;i<ri;i++)if(RM.h[i]==null)RM.h[i]=0;pushPresence();renderOpp()}
 let oppSeen={};
@@ -518,8 +525,10 @@ document.querySelector('header').after(MP);
 $('#mpb').onclick=()=>{$('#mpp').classList.toggle('hide');if(!RM)renderMP()};
 renderMP();
 function goNow(){const n=(RM.game|0)+1;RM.lvl=S.mode||'leicht';RM.cat=S.cat||'spieler';RM.lg=S.lg||'alle';RM.gi={go:n,glvl:RM.lvl,gcat:RM.cat,gl:RM.lg,gr:RM.rounds||10,gs:RM.sec||0};beginRoom(n)}
-function goCheck(){if(!RM)return;const g=RM.peers.find(x=>!x.isMe&&x.presence&&(x.presence.go|0)>(RM.game|0));if(!g)return;const q=g.presence;RM.lvl=MODES[q.glvl]?q.glvl:(S.mode||'leicht');RM.cat=['spieler','trainer','mix','fotos'].includes(q.gcat)?q.gcat:'spieler';RM.lg=LIGEN[q.gl]?q.gl:'alle';RM.rounds=[5,10,15,20].includes(q.gr)?q.gr:10;RM.sec=[0,6,8,10,12].includes(q.gs)?q.gs:0;RM.gi={go:q.go|0,glvl:RM.lvl,gcat:RM.cat,gl:RM.lg,gr:RM.rounds,gs:RM.sec};beginRoom(q.go|0)}
-function beginRoom(n){if(!RM||(RM.game|0)>=n)return;RM.game=n;RM.started=true;RM.score=0;RM.done=0;RM.h=[];oppSeen={};ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;S.cat=RM.cat||'spieler';S.lg=RM.lg||'alle';save()}order=seeded(RM.code+'#'+n);ri=0;RES.style.display='none';pushPresence();document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
+function goCheck(){if(!RM)return;const g=RM.peers.find(x=>!x.isMe&&x.presence&&(x.presence.go|0)>(RM.game|0));if(!g)return;const q=g.presence;
+ /* Revanche: nur mitspielen, wer zugesagt hat */
+ if((RM.game|0)>=1&&(RM.acc|0)!==(q.go|0))return;RM.lvl=MODES[q.glvl]?q.glvl:(S.mode||'leicht');RM.cat=['spieler','trainer','mix','fotos'].includes(q.gcat)?q.gcat:'spieler';RM.lg=LIGEN[q.gl]?q.gl:'alle';RM.rounds=[5,10,15,20].includes(q.gr)?q.gr:10;RM.sec=[0,6,8,10,12].includes(q.gs)?q.gs:0;RM.gi={go:q.go|0,glvl:RM.lvl,gcat:RM.cat,gl:RM.lg,gr:RM.rounds,gs:RM.sec};beginRoom(q.go|0)}
+function beginRoom(n){if(!RM||(RM.game|0)>=n)return;RM.game=n;RM.started=true;RM.score=0;RM.done=0;RM.h=[];RM.rq=0;oppSeen={};ROUNDS=RM.rounds||10;if(RM.lvl){S.mode=RM.lvl;S.cat=RM.cat||'spieler';S.lg=RM.lg||'alle';save()}order=seeded(RM.code+'#'+n);ri=0;RES.style.display='none';pushPresence();document.querySelector('.wrap').classList.remove('lobby','solo');$('#mpp').classList.add('hide');hideMenu();LVL.style.display='none';renderMP();countdown(()=>{start();renderMP()})}
 /* Anfangsmenü: Startbildschirm vor dem Spiel, Wahl zwischen Allein und Freunden */
 const MENU=document.createElement('div');MENU.id='menu';
 MENU.innerHTML='<h1>Stationen</h1><p class="msub">Das Fußball-Wissensquiz</p><p class="tag">Erkenne Spieler und Trainer an ihren Vereinen. Alle paar Sekunden kommt ein weiterer Verein dazu.</p><div class="demo">'+['Eintracht Frankfurt','Bayern München','Borussia Dortmund'].map(c=>'<div class="chip">'+crest(c)+c+'</div>').join('')+'</div><button class="btn y" id="mSolo" type="button">Allein spielen</button><button class="btn" id="mDaily" type="button">Tägliche Challenge</button><button class="btn" id="mFriends" type="button">Mit Freunden spielen</button><button class="btn" id="mStat" type="button">Statistik</button><button class="btn" id="mSnd" type="button"></button><p class="note" id="mInfo"></p><p class="credit">Vereinslogos und Fotos: Wikimedia Commons (gemeinfrei bzw. freie Lizenzen). Logos sind Marken der jeweiligen Vereine.</p>';
@@ -566,8 +575,24 @@ function renderResult(){
  });
  const ps=RM.peers.filter(x=>x.kind==='viewer'&&x.presence&&x.presence.name!==undefined);
  const lead=RM.host||!ps.some(x=>!x.isMe&&x.presence.host);
- if(lead){const rv=document.createElement('button');rv.type='button';rv.className='btn y rv';rv.textContent='Revanche';rv.onclick=()=>{RES.style.display='none';goNow()};RES.appendChild(rv)}
- else{const hn=ps.find(x=>!x.isMe&&x.presence.host);const w=document.createElement('p');w.className='wt';w.textContent='Warte auf die Revanche von '+(hn?String(hn.presence.name).slice(0,16):'dem Raumersteller')+' …';RES.appendChild(w)}
+ const nx=(RM.game|0)+1,others=ps.filter(x=>!x.isMe);
+ const add=(cls,txt,fn)=>{const e=document.createElement(fn?'button':'p');if(fn){e.type='button';e.onclick=fn}e.className=cls;e.textContent=txt;RES.appendChild(e);return e};
+ if(lead){
+  if((RM.rq|0)!==nx){add('btn y rv','Revanche anbieten',()=>{RM.rq=nx;pushPresence();renderResult()})}
+  else{
+   const yes=others.filter(x=>(x.presence.acc|0)===nx).map(x=>String(x.presence.name).slice(0,16));
+   const wait=others.filter(x=>(x.presence.acc|0)!==nx).map(x=>String(x.presence.name).slice(0,16));
+   add('wt',(yes.length?'Dabei: '+yes.join(', ')+'. ':'')+(wait.length?'Warte auf: '+wait.join(', ')+' …':'Alle sind dabei!'));
+   const go=add('btn y rv',yes.length?'Revanche starten ('+(yes.length+1)+' Spieler)':'Allein neu starten',()=>{RES.style.display='none';goNow()});
+  }
+ }else{
+  const hp=ps.find(x=>!x.isMe&&x.presence.host)||ps.find(x=>!x.isMe);const hn=hp?String(hp.presence.name).slice(0,16):'Der Raumersteller';
+  const started=hp&&(hp.presence.go|0)>=nx;
+  if(hp&&((hp.presence.rq|0)===nx||started)){
+   if((RM.acc|0)===nx)add('wt','Du bist dabei ✓ Warte, bis '+hn+' startet …');
+   else{add('wt',started?hn+' hat die Revanche schon gestartet.':hn+' möchte eine Revanche!');add('btn y rv',started?'Trotzdem mitspielen':'Bin dabei',()=>{RM.acc=nx;pushPresence();renderResult();goCheck()})}
+  }else add('wt','Warte, ob '+hn+' eine Revanche anbietet …');
+ }
  const lv=document.createElement('button');lv.type='button';lv.className='btn';lv.textContent='Raum verlassen';
  lv.onclick=()=>{RES.style.display='none';leaveRoom()};RES.appendChild(lv);
 }
